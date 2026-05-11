@@ -84,10 +84,12 @@ jobs:
         with:
           workspaces: SafiUI -> target
           shared-key: android
-      - name: cargo ndk build
+      - name: cargo ndk build (workspace + window-smoke device build)
         env:
           ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
-        run: cargo ndk -t arm64-v8a build
+        run: |
+          cargo ndk -t arm64-v8a build
+          cargo ndk -t arm64-v8a build -p safi-ui-window-smoke --features device-build
 
   build-ios:
     name: build (aarch64-apple-ios)
@@ -102,4 +104,7 @@ jobs:
         with:
           workspaces: SafiUI -> target
           shared-key: ios
-      - run: cargo build --target aarch64-apple-ios
+      - name: cargo build (workspace + window-smoke device build)
+        run: |
+          cargo build --target aarch64-apple-ios
+          cargo build --target aarch64-apple-ios -p safi-ui-window-smoke --features device-build

@@ -3,9 +3,7 @@ resolver = "2"
 members = [
     "safi-ui",
     "safi-ui-macros",
-    # "examples/*" — added in todo 31 (example apps). Cargo errors on an
-    # empty glob, so this line stays commented until the first example
-    # crate lands.
+    "examples/*",
 ]
 
 [workspace.package]

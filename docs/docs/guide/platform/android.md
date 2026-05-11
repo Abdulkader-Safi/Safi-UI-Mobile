@@ -1,7 +1,7 @@
 # Android
 
-:::warning Status: Specification (v1.0)
-Not yet implemented. This page describes the planned Android target.
+:::info Status: Smoke test landed (todo 02)
+The Android host project, JNI bridge, and SDL3 + `SDL_GPU` window creation are wired up in `SafiUI/examples/window-smoke/`. Device verification (Vulkan driver confirmed in Logcat, background/foreground survives) is the user's hand-off. The full PRD §9.1 platform bridge (safe area, keyboard height, asset loader) lands in later todos.
 :::
 
 ## Spec
@@ -31,6 +31,27 @@ cargo install cargo-ndk
 rustup target add aarch64-linux-android
 cargo ndk -t arm64-v8a -o ./android/app/src/main/jniLibs build --release
 ```
+
+## Reproducing the smoke test
+
+Found in `SafiUI/examples/window-smoke/android/`. The Rust crate compiles as `crate-type = ["cdylib"]`, statically links SDL3 (via `sdl3` crate's `build-from-source-static` feature), and exports `SDL_main` through `#[sdl3_main::main]`. The Kotlin host is a single `SDLActivity` subclass that loads `libsafi_ui_window_smoke.so`.
+
+```bash
+cd SafiUI/examples/window-smoke/android
+export ANDROID_NDK_HOME=/path/to/ndk/r26d
+./build.sh         # cargo ndk build + gradle assembleDebug
+./gradlew installDebug
+adb shell am start -n com.safiui.windowsmoke/.MainActivity
+adb logcat -s SDL safi-ui-window-smoke
+```
+
+Expected logcat output:
+
+```
+safi-ui-window-smoke: SDL_GPU driver = Some("vulkan")
+```
+
+Any other driver (`gles2`, `gles3`, `software`) means SDL3 fell back. The Vulkan feature filter in `AndroidManifest.xml` prevents installation on devices that lack Vulkan 1.1, so the fallback should never happen in practice on API 24+.
 
 ## Lifecycle handling
 

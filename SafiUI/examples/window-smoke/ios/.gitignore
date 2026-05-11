@@ -1,0 +1,6 @@
+build/
+Sources/build/
+DerivedData/
+WindowSmoke.xcodeproj/xcuserdata/
+WindowSmoke.xcodeproj/project.xcworkspace/xcuserdata/
+*.xcuserstate

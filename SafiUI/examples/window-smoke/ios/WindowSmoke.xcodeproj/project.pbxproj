@@ -1,0 +1,318 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		1A0000010000000000000001 /* WindowSmoke.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000020000000000000001 /* WindowSmoke.swift */; };
+		1A0000010000000000000002 /* libsafi_ui_window_smoke.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 1A0000020000000000000003 /* libsafi_ui_window_smoke.a */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		1A0000020000000000000001 /* WindowSmoke.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowSmoke.swift; sourceTree = "<group>"; };
+		1A0000020000000000000002 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		1A0000020000000000000003 /* libsafi_ui_window_smoke.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = "libsafi_ui_window_smoke.a"; path = "build/libsafi_ui_window_smoke.a"; sourceTree = "<group>"; };
+		1A0000020000000000000004 /* WindowSmoke.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WindowSmoke.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		1A0000020000000000000005 /* SafiUI-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "SafiUI-Bridging-Header.h"; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		1A0000030000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1A0000010000000000000002 /* libsafi_ui_window_smoke.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		1A0000040000000000000001 = {
+			isa = PBXGroup;
+			children = (
+				1A0000040000000000000002 /* Sources */,
+				1A0000040000000000000003 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		1A0000040000000000000002 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				1A0000020000000000000001 /* WindowSmoke.swift */,
+				1A0000020000000000000005 /* SafiUI-Bridging-Header.h */,
+				1A0000020000000000000002 /* Info.plist */,
+				1A0000020000000000000003 /* libsafi_ui_window_smoke.a */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		1A0000040000000000000003 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				1A0000020000000000000004 /* WindowSmoke.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		1A0000050000000000000001 /* WindowSmoke */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1A0000060000000000000001 /* Build configuration list for PBXNativeTarget "WindowSmoke" */;
+			buildPhases = (
+				1A0000070000000000000001 /* Sources */,
+				1A0000030000000000000001 /* Frameworks */,
+				1A0000080000000000000001 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = WindowSmoke;
+			productName = WindowSmoke;
+			productReference = 1A0000020000000000000004 /* WindowSmoke.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		1A0000090000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 1610;
+				TargetAttributes = {
+					1A0000050000000000000001 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+				};
+			};
+			buildConfigurationList = 1A00000A0000000000000001 /* Build configuration list for PBXProject "WindowSmoke" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 1A0000040000000000000001;
+			productRefGroup = 1A0000040000000000000003 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				1A0000050000000000000001 /* WindowSmoke */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		1A0000080000000000000001 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		1A0000070000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1A0000010000000000000001 /* WindowSmoke.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		1A00000B0000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+			};
+			name = Debug;
+		};
+		1A00000B0000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		1A00000C0000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = arm64;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = "";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				EXCLUDED_ARCHS = x86_64;
+				GENERATE_INFOPLIST_FILE = NO;
+				HEADER_SEARCH_PATHS = (
+					"$(SRCROOT)/build/sdl3-include",
+				);
+				INFOPLIST_FILE = Sources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/Sources/build/$(PLATFORM_NAME)",
+				);
+				OTHER_LDFLAGS = (
+					"-ObjC",
+					"-force_load", "$(SRCROOT)/Sources/build/$(PLATFORM_NAME)/libsafi_ui_window_smoke.a",
+					"-framework", "Foundation",
+					"-framework", "UIKit",
+					"-framework", "QuartzCore",
+					"-framework", "Metal",
+					"-framework", "MetalKit",
+					"-framework", "CoreGraphics",
+					"-framework", "CoreVideo",
+					"-framework", "CoreMedia",
+					"-framework", "CoreMotion",
+					"-framework", "CoreHaptics",
+					"-framework", "CoreServices",
+					"-framework", "CoreBluetooth",
+					"-framework", "AVFoundation",
+					"-framework", "AVFAudio",
+					"-framework", "AudioToolbox",
+					"-framework", "GameController",
+					"-framework", "OpenGLES",
+					"-framework", "ImageIO",
+					"-weak_framework", "Photos",
+				);
+				OTHER_SWIFT_FLAGS = "-parse-as-library";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.safiui.windowsmoke";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "Sources/SafiUI-Bridging-Header.h";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		1A00000C0000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = arm64;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = "";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				EXCLUDED_ARCHS = x86_64;
+				GENERATE_INFOPLIST_FILE = NO;
+				HEADER_SEARCH_PATHS = (
+					"$(SRCROOT)/build/sdl3-include",
+				);
+				INFOPLIST_FILE = Sources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/Sources/build/$(PLATFORM_NAME)",
+				);
+				OTHER_LDFLAGS = (
+					"-ObjC",
+					"-force_load", "$(SRCROOT)/Sources/build/$(PLATFORM_NAME)/libsafi_ui_window_smoke.a",
+					"-framework", "Foundation",
+					"-framework", "UIKit",
+					"-framework", "QuartzCore",
+					"-framework", "Metal",
+					"-framework", "MetalKit",
+					"-framework", "CoreGraphics",
+					"-framework", "CoreVideo",
+					"-framework", "CoreMedia",
+					"-framework", "CoreMotion",
+					"-framework", "CoreHaptics",
+					"-framework", "CoreServices",
+					"-framework", "CoreBluetooth",
+					"-framework", "AVFoundation",
+					"-framework", "AVFAudio",
+					"-framework", "AudioToolbox",
+					"-framework", "GameController",
+					"-framework", "OpenGLES",
+					"-framework", "ImageIO",
+					"-weak_framework", "Photos",
+				);
+				OTHER_SWIFT_FLAGS = "-parse-as-library";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.safiui.windowsmoke";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "Sources/SafiUI-Bridging-Header.h";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		1A00000A0000000000000001 /* Build configuration list for PBXProject "WindowSmoke" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1A00000B0000000000000001 /* Debug */,
+				1A00000B0000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		1A0000060000000000000001 /* Build configuration list for PBXNativeTarget "WindowSmoke" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1A00000C0000000000000001 /* Debug */,
+				1A00000C0000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 1A0000090000000000000001 /* Project object */;
+}

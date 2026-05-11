@@ -1,7 +1,7 @@
 # iOS
 
-:::warning Status: Specification (v1.0)
-Not yet implemented. This page describes the planned iOS target.
+:::info Status: Smoke test landed (todo 02)
+The iOS host project (`WindowSmoke.xcodeproj`), main.m bridge, and SDL3 + `SDL_GPU` window creation are wired up in `SafiUI/examples/window-smoke/ios/`. Device verification (Metal driver confirmed in Xcode console, background/foreground survives) is the user's hand-off. The full PRD §9.2 platform bridge (safe area, keyboard, orientation) lands in later todos.
 :::
 
 ## Spec
@@ -26,11 +26,32 @@ Safi-UI uses native Metal through SDL_GPU, **not** MoltenVK. There is no Vulkan 
 ## Build
 
 ```bash
-cargo install cargo-mobile2
-cargo mobile init
 rustup target add aarch64-apple-ios
 cargo build --target aarch64-apple-ios --release
 ```
+
+## Reproducing the smoke test
+
+:::warning iOS Simulator cannot run SDL_GPU Metal
+The simulator's virtual Metal device reports a GPU family below `MTLGPUFamilyApple3`, and SDL_GPU refuses to initialize on it (`Device does not meet the hardware requirements for SDL_GPU Metal`). The smoke test must be run on a real iPhone (A11 / iPhone 8 or newer). Simulator builds still validate the Swift bridge, linker setup, and SDL3 init, but cannot reach the GPU.
+:::
+
+Found in `SafiUI/examples/window-smoke/ios/`. The Rust crate compiles as `crate-type = ["staticlib"]` with SDL3 statically linked in (`sdl3` crate `build-from-source-static`). The Xcode project links `libsafi_ui_window_smoke.a` and uses a single-file **Swift** bridge (`Sources/main.swift` with `@_cdecl("main")`) calling `SDL_RunApp` to hand control over to the Rust-exported `SDL_main`.
+
+```bash
+cd SafiUI/examples/window-smoke/ios
+./build.sh           # cargo build + xcodebuild
+# Then in Xcode: open WindowSmoke.xcodeproj, select an iPhone simulator,
+# Cmd+R.
+```
+
+Expected Xcode console output:
+
+```
+safi-ui-window-smoke: SDL_GPU driver = Some("metal")
+```
+
+The `UIRequiredDeviceCapabilities` array in `Info.plist` includes `metal`, so the app refuses to install on devices that don't support it.
 
 ## Orientation changes
 

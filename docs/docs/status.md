@@ -1,24 +1,24 @@
 # Implementation Status
 
-**Last updated:** May 2026 — todos `00` + `01` complete (workspace + CI). Source of truth: [`PRD.md`](https://github.com/AbdulKaderSafi/safi-ui/blob/main/PRD.md) v2.3.
+**Last updated:** May 2026 — todos `00` + `01` + `02` complete (workspace, CI, SDL3 smoke test). Source of truth: [`PRD.md`](https://github.com/Abdulkader-Safi/Safi-UI-Mobile/blob/main/PRD.md) v2.3.
 
-:::info Phase 0 in progress
-The Cargo workspace lives under `SafiUI/` at the repo root. `safi-ui` and `safi-ui-macros` are empty stub crates that `cargo check` / `cargo clippy -D warnings` / `cargo fmt --check` all pass cleanly. GitHub Actions enforces those gates plus Android (`aarch64-linux-android`) and iOS (`aarch64-apple-ios`) cross-builds on every PR. Modules will fill in across todos `02`…`32`.
+:::info Phase 0 ¾ — SDL3 window opens on both platforms (code landed; device verification pending)
+SDL3 + `SDL_GPU` smoke test under `SafiUI/examples/window-smoke/` opens a Vulkan window on Android (`MainActivity : SDLActivity` + `cargo ndk`) and a Metal window on iOS (`WindowSmoke.xcodeproj` + static-linked SDL3). Host `cargo check` / `clippy` / `test` stay clean because sdl3 is gated behind `--features device-build`. The Rust + native scaffolding compiles; **the actual on-device confirmation (Vulkan driver string in Logcat, Metal driver string in Xcode console, lifecycle survives background/foreground) is pending the user's hardware run**.
 :::
 
 ## Overall
 
-| Phase   | Description        | Target   | Status                   |
-| ------- | ------------------ | -------- | ------------------------ |
-| Phase 0 | Foundations        | Wk 1–2   | In progress (todo 00 ✅) |
-| Phase 1 | Core Engine        | Wk 3–6   | Not started              |
-| Phase 2 | Layout + Parse     | Wk 7–9   | Not started              |
-| Phase 3 | Component Registry | Wk 10–12 | Not started              |
-| Phase 4 | Component Library  | Wk 13–18 | Not started              |
-| Phase 5 | State + Events     | Wk 19–21 | Not started              |
-| Phase 6 | Platform Polish    | Wk 22–24 | Not started              |
-| Phase 7 | OSS Launch         | Wk 25–26 | Not started              |
-| Post-v1 | CLI (`safi`)       | v1.1     | Not started              |
+| Phase   | Description        | Target   | Status                                 |
+| ------- | ------------------ | -------- | -------------------------------------- |
+| Phase 0 | Foundations        | Wk 1–2   | In progress (00 ✅ 01 ✅ 02 Android ✅ / iOS ⚠️) |
+| Phase 1 | Core Engine        | Wk 3–6   | Not started                            |
+| Phase 2 | Layout + Parse     | Wk 7–9   | Not started                            |
+| Phase 3 | Component Registry | Wk 10–12 | Not started                            |
+| Phase 4 | Component Library  | Wk 13–18 | Not started                            |
+| Phase 5 | State + Events     | Wk 19–21 | Not started                            |
+| Phase 6 | Platform Polish    | Wk 22–24 | Not started                            |
+| Phase 7 | OSS Launch         | Wk 25–26 | Not started                            |
+| Post-v1 | CLI (`safi`)       | v1.1     | Not started                            |
 
 ## Core systems
 
@@ -58,8 +58,8 @@ The Cargo workspace lives under `SafiUI/` at the repo root. `safi-ui` and `safi-
 
 | Platform | Backend                  | Min version             | Status                            |
 | -------- | ------------------------ | ----------------------- | --------------------------------- |
-| Android  | Vulkan via SDL_GPU       | API 24 (NDK r25+)       | WIP                               |
-| iOS      | Metal via SDL_GPU        | iOS 16                  | WIP                               |
+| Android  | Vulkan via SDL_GPU       | API 24 (NDK r25+)       | ✅ Verified on Pixel 8 emulator (Vulkan) |
+| iOS      | Metal via SDL_GPU        | iOS 16                  | Smoke test code landed ⚠️ needs real iPhone |
 | Desktop  | SDL3 host (preview only) | macOS / Linux / Windows | Planned for `safi preview` (v1.1) |
 
 ## CLI commands (v1.1)
