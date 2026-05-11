@@ -13,8 +13,8 @@ version = "0.1.0"
 edition = "2021"
 license = "MIT"
 authors = ["Abdul Kader Safi <safi.abdulkader@gmail.com>"]
-repository = "https://github.com/AbdulKaderSafi/safi-ui"
-homepage = "https://github.com/AbdulKaderSafi/safi-ui"
+repository = "https://github.com/Abdulkader-Safi/Safi-UI-Mobile"
+homepage = "https://github.com/Abdulkader-Safi/Safi-UI-Mobile"
 description = "Declarative XML-driven mobile UI framework in pure Rust"
 rust-version = "1.95"
 
