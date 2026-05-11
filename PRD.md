@@ -1,22 +1,24 @@
 # Safi-UI, Product Requirements Document
 
-**v2.2 | Safi Studio**
+**v2.3 | Safi Studio**
 
+> **v2.3 change note:** Repository Structure section removed; sections 17–19 renumbered. New §20 "CLI Tool (post-v1)" added, scoping the `safi` binary as a v1.1 deliverable with `safi preview` as the capstone command.
+>
 > **v2.2 change note:** Spec ambiguities flagged in the v2.1 verification pass are resolved: lifecycle rules clarified (§6.8), `Component` no longer requires `Send + Sync`, release-mode panic behaviour pinned down (§14.1), `vnode!` macro specified (§6.15), `on_layout` change-detection rule added, dirty-cascade rule added (§5.3), composite-binding subscription semantics added (§6.12), background-thread state-update pattern documented, EventBus thread-safety wording tightened, frame-loop snippet made compileable.
 >
 > v2.1 resolved all 15 open questions from the v2.0 review. Section 18 still summarises every decision.
 
 ---
 
-| Field        | Value                     |
-| ------------ | ------------------------- |
-| **Version**  | 2.2, Verification Applied |
-| **Status**   | In Review                 |
-| **Date**     | May 2026                  |
-| **Author**   | Abdul Kader Safi          |
-| **Project**  | Safi Studio, Open Source  |
-| **Language** | Rust (2021 Edition)       |
-| **License**  | MIT (proposed)            |
+| Field        | Value                    |
+| ------------ | ------------------------ |
+| **Version**  | 2.3, CLI Scope Added     |
+| **Status**   | In Review                |
+| **Date**     | May 2026                 |
+| **Author**   | Abdul Kader Safi         |
+| **Project**  | Safi Studio, Open Source |
+| **Language** | Rust (2021 Edition)      |
+| **License**  | MIT (proposed)           |
 
 ---
 
@@ -1029,6 +1031,69 @@ All 15 open questions from the v2.0 review session are resolved. This section is
 
 ---
 
+## 20. CLI Tool (post-v1)
+
+A standalone `safi` binary distributed via `cargo install safi-cli`. Out of scope for the v1.0 library release; planned as the v1.1 deliverable once the library has stabilised. The CLI consumes the same `safi-ui` crate the apps consume, so every command stays in lockstep with the runtime.
+
+### 20.1 Command Surface
+
+Built in this order. The capstone (`safi preview`) ships last because it depends on every other piece of the system being in place.
+
+| Order | Command                                  | Purpose                                                                                                                                                                                                                |
+| ----- | ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1     | `safi new <project>`                     | Scaffold a new project (Cargo workspace, Android + iOS host, `assets/ui/` skeleton, sample screen, README)                                                                                                             |
+| 2     | `safi generate screen <name>`            | Create `assets/ui/screens/<name>.xml` from a template; lowercase-hyphen naming enforced per §12.1                                                                                                                      |
+| 2     | `safi generate component <Name>`         | Create `assets/ui/components/<Name>.xml` (PascalCase) with a default `<Component name="…" props="…">` shell                                                                                                            |
+| 3     | `safi doctor`                            | Verify toolchain: rustc + targets, `cargo-ndk`, `cargo-mobile2`, NDK r25+, Xcode, `glslc`. Reports gaps with fix-it commands                                                                                           |
+| 4     | `safi dev --target android\|ios`         | Wraps `cargo ndk` (or `cargo-mobile2`), installs to a connected device/emulator, launches with `dev` feature, streams logs                                                                                             |
+| 5     | `safi build --release --target …`        | Release builds, strips symbols, reports binary size against the §17.1 target (< 800KB worst case arm64)                                                                                                                |
+| 6     | `safi lint`                              | Validates every `.xml` in `assets/ui/` against the live `ComponentRegistry`: unknown tags, missing required `id`/`key`, malformed prop values, broken `{{binding}}` references against an optional `state.schema.json` |
+| 7     | **`safi preview <file.xml>` (capstone)** | Desktop hot-reload window rendering a single screen or component. See §20.2.                                                                                                                                           |
+
+### 20.2 `safi preview`, the Capstone
+
+Opens an SDL3 window on the developer's macOS / Linux / Windows machine, draws a device-frame chrome around the rendered UI, runs the full Safi-UI pipeline against the target file, and hot-reloads on save. State values can be mocked from the command line or a JSON file.
+
+```bash
+safi preview assets/ui/screens/dashboard.xml --device pixel-8
+safi preview assets/ui/components/UserCard.xml \
+    --device iphone-15-pro \
+    --orientation landscape \
+    --state '{"user.name":"Safi","user.role":"Lead"}'
+safi preview assets/ui/screens/chat.xml --state-file mocks/chat.json
+```
+
+| Attribute                | Detail                                                                                               |
+| ------------------------ | ---------------------------------------------------------------------------------------------------- |
+| **Backend**              | Same SDL3 + SDL_GPU pipeline as the mobile runtime; uses the desktop SDL3 backend (community-added)  |
+| **Device frames**        | `pixel-8`, `pixel-9-pro`, `iphone-15`, `iphone-15-pro`, `ipad-mini`, `ipad-pro-13`                   |
+| **Orientation**          | `portrait` (default) or `landscape`; triggers Taffy re-layout                                        |
+| **DPI**                  | Matches the selected device's `dpi_scale` exactly (see §7.3)                                         |
+| **Safe area**            | Synthetic safe-area insets per device (notch, home indicator, status bar)                            |
+| **Mock state**           | Inline JSON via `--state` or path via `--state-file`; populated into `StateStore` before first build |
+| **Hot-reload**           | Watches the file (and its component dependencies); reload latency target < 100ms (matches §6.10)     |
+| **Recording (v1.2)**     | `--record out.gif` captures the window for marketing / docs / bug reports                            |
+| **Headless mode (v1.2)** | `--snapshot out.png` for CI visual-regression testing                                                |
+
+### 20.3 Why the Capstone Comes Last
+
+- It collapses the dev loop from "edit → cargo ndk build → install → tap to screen" to "edit → save → see it"
+- It opens contribution to designers and junior devs who don't have the mobile toolchain installed
+- It is the foundation for the v2 visual editor (§3.2 non-goal): same parse + layout + render pipeline, plus selection and a property panel
+- It structurally requires the parser, layout engine, component registry, hot-reload, asset loader, and GPU renderer to all be working — which is why it sits at the end of the build order
+- It is the single command that is genuinely framework-specific; `new` / `generate` / `build` are commodity codegen that any framework ships, but `preview` only works because Safi-UI owns the rendering pipeline end-to-end
+
+### 20.4 Distribution
+
+```bash
+cargo install safi-cli           # from crates.io
+brew install safi-studio/tap/safi # macOS, post-v1.1
+```
+
+The CLI is versioned in lockstep with the `safi-ui` crate. `safi --version` reports both. `safi doctor` warns on version skew between the installed CLI and the `safi-ui` dependency in the current project's `Cargo.toml`.
+
+---
+
 ## Appendix, Full XML Example
 
 ```xml
@@ -1088,4 +1153,4 @@ All 15 open questions from the v2.0 review session are resolved. This section is
 
 ---
 
-_Safi-UI · PRD v2.1 · Safi Studio · May 2026 · Confidential Draft_
+_Safi-UI · PRD v2.1 · Safi Studio · May 2026 · Draft_
