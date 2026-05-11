@@ -10,7 +10,8 @@
     "activeMatch": "/api/"
   },
   {
-    "text": "Document",
-    "link": "https://rspress.rs/"
+    "text": "Status",
+    "link": "/status",
+    "activeMatch": "/status"
   }
 ]

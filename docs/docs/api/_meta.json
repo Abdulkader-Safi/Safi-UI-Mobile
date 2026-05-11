@@ -1,1 +1,15 @@
-["index", "commands"]
+[
+  "index",
+  {
+    "type": "dir",
+    "name": "components",
+    "label": "Built-in Components"
+  },
+  {
+    "type": "dir",
+    "name": "core",
+    "label": "Core API"
+  },
+  "macros",
+  "commands"
+]

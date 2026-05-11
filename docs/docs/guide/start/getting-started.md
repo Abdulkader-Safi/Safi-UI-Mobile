@@ -1,51 +1,104 @@
-# Getting started
+# Getting Started
 
-## Project structure
-
-After creating a project with `create-rspress`, you will get the following project structure:
-
-- `docs/` — The documentation source directory, configured via `root` in `rspress.config.ts`.
-- `docs/_nav.json` — The navigation bar configuration.
-- `docs/guide/_meta.json` — The sidebar configuration for the guide section.
-- `docs/public/` — Static assets directory.
-- `theme/` — Optional custom theme directory, generated when you choose the custom theme scaffold.
-- `rspress.config.ts` — The Rspress configuration file.
-
-## Development
-
-Start the local development server:
-
-```bash
-npm run dev
-```
-
-:::tip
-
-You can specify the port number or host with `--port` or `--host`, such as `rspress dev --port 8080 --host 0.0.0.0`.
-
+:::warning Status: Specification (v1.0)
+The toolchain and project layout described here are the planned v1.0 developer experience. The library is not yet published to crates.io and the `safi` CLI does not yet exist (it is a planned v1.1 deliverable). Use this page as the contract that the implementation must satisfy.
 :::
 
-## Production build
+## Prerequisites
 
-Build the site for production:
+| Tool                  | Version | Purpose                                                          |
+| --------------------- | ------- | ---------------------------------------------------------------- |
+| Rust (stable)         | 1.75+   | Compiler                                                         |
+| Android NDK           | r25+    | Android native build toolchain                                   |
+| Xcode                 | 15+     | iOS native build toolchain                                       |
+| `cargo-ndk`           | 3.0+    | Android cross-compilation                                        |
+| `cargo-mobile2`       | latest  | iOS Xcode project generation                                     |
+| `glslc`               | SDK     | GLSL → SPIR-V / MSL shader compilation (used by `build.rs` only) |
+| Android device or AVD | API 24+ | Vulkan-capable target                                            |
+| iPhone or simulator   | iOS 16+ | Metal-capable target                                             |
 
-```bash
-npm run build
+## Add the dependency (planned)
+
+```toml
+[dependencies]
+safi-ui = "1.0"
+
+# Hot-reload during development
+[dependencies.safi-ui-dev]
+version = "1.0"
+features = ["dev"]
 ```
 
-By default, Rspress will output to `doc_build` directory.
+## Project layout (planned)
 
-## Preview
+```
+my-app/
+├── Cargo.toml
+├── src/
+│   └── main.rs
+└── assets/
+    └── ui/
+        ├── screens/
+        │   └── home-screen.xml
+        └── components/
+            └── UserCard.xml
+```
 
-Preview the production build locally:
+| Path                    | Contents                                      |
+| ----------------------- | --------------------------------------------- |
+| `assets/ui/screens/`    | Screen XML files, lowercase-hyphen filenames  |
+| `assets/ui/components/` | User-defined XML components, PascalCase       |
+| `assets/images/`        | PNG / JPEG / WebP referenced by `<Image src>` |
+
+## Hello world (planned)
+
+`assets/ui/screens/home-screen.xml`:
+
+```xml
+<Screen bg="#0f0f1a" safeArea="true">
+  <Column gap="16" padding="24" justify="center" align="center" flex="1">
+    <Heading level="1" color="#fff">Hello, Safi-UI!</Heading>
+    <Button id="cta" label="Tap me" onPress="demo.tap" />
+  </Column>
+</Screen>
+```
+
+`src/main.rs`:
+
+```rust
+use safi_ui::prelude::*;
+
+fn main() -> safi_ui::Result<()> {
+    let mut app = App::init(AppConfig::default())?;
+
+    EventBus::global().on("demo.tap", || {
+        StateStore::global().set("status", "Tapped!");
+    });
+
+    app.load_screen("home-screen")?;
+    app.run()
+}
+```
+
+## Build for Android (planned)
 
 ```bash
-npm run preview
+cargo install cargo-ndk
+rustup target add aarch64-linux-android
+cargo ndk -t arm64-v8a -o ./android/app/src/main/jniLibs build --release
+```
+
+## Build for iOS (planned)
+
+```bash
+cargo install cargo-mobile2
+cargo mobile init
+rustup target add aarch64-apple-ios
+cargo build --target aarch64-apple-ios --release
 ```
 
 ## Next steps
 
-- Learn how to use [MDX & React Components](/guide/use-mdx/components) in your docs.
-- Learn about [Code Blocks](/guide/use-mdx/code-blocks/) syntax highlighting and line highlighting.
-- Learn about [Custom Containers](/guide/use-mdx/container) for tips, warnings, and more.
-- Explore the full [Rspress documentation](https://rspress.rs/) for advanced features.
+- [Architecture](/guide/start/architecture) — understand the data flow
+- [XML Authoring](/guide/authoring/xml-syntax) — learn the XML model
+- [Built-in Components](/api/components/) — what ships out of the box

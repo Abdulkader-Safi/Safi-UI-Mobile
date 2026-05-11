@@ -1,7 +1,97 @@
-# Commands
+# `safi` CLI Commands
 
-## dev
+:::warning Status: Specification (post-v1)
+The `safi` binary is a planned **v1.1** deliverable. None of the commands below exist yet.
+:::
 
-## build
+See the [CLI guide](/guide/tooling/cli) for the full design rationale and the build order.
 
-## preview
+## `safi new <project>`
+
+Scaffold a new project: Cargo workspace, Android + iOS host, `assets/ui/` skeleton, sample screen, README.
+
+```bash
+safi new my-app
+```
+
+## `safi generate screen <name>`
+
+Create `assets/ui/screens/<name>.xml`. Naming enforced as lowercase-hyphen.
+
+```bash
+safi generate screen home
+# Creates: assets/ui/screens/home.xml
+```
+
+## `safi generate component <Name>`
+
+Create `assets/ui/components/<Name>.xml` with a `<Component name="..." props="...">` shell.
+
+```bash
+safi generate component UserCard
+# Creates: assets/ui/components/UserCard.xml
+```
+
+## `safi doctor`
+
+Verify toolchain. Checks rustc + cross-compilation targets, `cargo-ndk`, `cargo-mobile2`, NDK r25+, Xcode, `glslc`. Reports gaps with fix-it commands.
+
+```bash
+safi doctor
+```
+
+## `safi dev --target android|ios`
+
+Wraps `cargo ndk` (Android) or `cargo-mobile2` (iOS), installs to a connected device/emulator, launches with the `dev` feature flag, streams logs.
+
+```bash
+safi dev --target android
+safi dev --target ios
+```
+
+## `safi build --release --target ...`
+
+Release builds. Strips symbols, reports binary size against the < 800KB worst-case arm64 target.
+
+```bash
+safi build --release --target aarch64-linux-android
+safi build --release --target aarch64-apple-ios
+```
+
+## `safi lint`
+
+Validates every `.xml` in `assets/ui/` against the live `ComponentRegistry`:
+
+- Unknown tags
+- Missing required `id` / `key`
+- Malformed prop values
+- Broken `{{binding}}` references against an optional `state.schema.json`
+
+```bash
+safi lint
+safi lint --schema state.schema.json
+```
+
+## `safi preview <file.xml>`
+
+Desktop hot-reload window rendering a single screen or component. **The capstone command.**
+
+```bash
+safi preview assets/ui/screens/dashboard.xml --device pixel-8
+safi preview assets/ui/components/UserCard.xml \
+    --device iphone-15-pro \
+    --orientation landscape \
+    --state '{"user.name":"Safi","user.role":"Lead"}'
+safi preview assets/ui/screens/chat.xml --state-file mocks/chat.json
+```
+
+| Flag                        | Default    | Notes                                                                              |
+| --------------------------- | ---------- | ---------------------------------------------------------------------------------- |
+| `--device`                  | `pixel-8`  | `pixel-8`, `pixel-9-pro`, `iphone-15`, `iphone-15-pro`, `ipad-mini`, `ipad-pro-13` |
+| `--orientation`             | `portrait` | `portrait` \| `landscape`                                                          |
+| `--state`                   | none       | Inline JSON; populated into `StateStore` before first build                        |
+| `--state-file`              | none       | Path to JSON file                                                                  |
+| `--record out.gif` (v1.2)   | none       | Records the window for marketing / docs                                            |
+| `--snapshot out.png` (v1.2) | none       | Headless render for CI visual-regression testing                                   |
+
+See the [CLI guide](/guide/tooling/cli) for the full breakdown.

@@ -1,0 +1,12 @@
+[
+  "vnode",
+  "ui-context",
+  "widget-arena",
+  "command-buffer",
+  "dirty-tracker",
+  "state-store",
+  "event-bus",
+  "prop-utils",
+  "component-trait",
+  "gesture-recognizer"
+]

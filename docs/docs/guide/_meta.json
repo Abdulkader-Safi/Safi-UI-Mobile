@@ -6,7 +6,22 @@
   },
   {
     "type": "dir-section-header",
-    "name": "use-mdx",
-    "label": "Markdown & MDX"
+    "name": "concepts",
+    "label": "Core Concepts"
+  },
+  {
+    "type": "dir-section-header",
+    "name": "authoring",
+    "label": "XML Authoring"
+  },
+  {
+    "type": "dir-section-header",
+    "name": "platform",
+    "label": "Platform"
+  },
+  {
+    "type": "dir-section-header",
+    "name": "tooling",
+    "label": "Tooling"
   }
 ]

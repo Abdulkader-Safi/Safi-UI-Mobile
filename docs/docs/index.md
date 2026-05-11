@@ -2,42 +2,39 @@
 pageType: home
 
 hero:
-  name: My Site
-  text: A cool website!
-  tagline: This is the tagline
+  name: Safi-UI
+  text: Native mobile UI in pure Rust
+  tagline: Declarative XML, retained-mode rendering, native Vulkan and Metal via SDL_GPU. No managed runtime, no translation layers.
   actions:
     - theme: brand
-      text: Quick Start
+      text: Get Started
       link: /guide/start/introduction
     - theme: alt
-      text: GitHub
-      link: https://github.com/web-infra-dev/rspress
-  image:
-    src: /rspress-icon.png
-    alt: Logo
+      text: Implementation Status
+      link: /status
 features:
-  - title: Blazing fast build speed
-    details: The core compilation module is based on the Rust front-end toolchain, providing a more ultimate development experience.
-    icon: 🏃🏻‍♀️
-    link: /guide/start/introduction
-  - title: Support for MDX content writing
-    details: MDX is a powerful way to write content, allowing you to use React components in Markdown.
-    icon: 📦
-    link: /guide/use-mdx/components
-  - title: Built-in full-text search
-    details: Automatically generates a full-text search index for you during construction, providing out-of-the-box full-text search capabilities.
-    icon: 🎨
-    link: https://rspress.rs/guide/advanced/custom-search
-  - title: AI-friendly
-    details: Generate llms.txt and Markdown files compliant with the llms.txt specification through SSG-MD, making it easier for large language models to understand and use your documentation.
-    icon: 🤖
-    link: https://rspress.rs/guide/basic/ssg-md
-  - title: Static site generation
-    details: In production, it automatically builds into static HTML files, which can be easily deployed anywhere.
-    icon: 🌈
-    link: https://rspress.rs/guide/basic/ssg
-  - title: Providing multiple custom capabilities
-    details: Through its extension mechanism, you can easily extend theme UI and build process.
-    icon: 🔥
-    link: https://rspress.rs/guide/basic/custom-theme
+  - title: XML-Driven Authoring
+    details: Author UI in structured XML files. Hot-reload in development with seamless state preservation. Users write XML, not Rust.
+    icon: 📝
+    link: /guide/authoring/xml-syntax
+  - title: Native GPU, Zero Translation
+    details: Native Vulkan on Android and Metal on iOS through SDL_GPU. No MoltenVK, no OpenGL ES, no managed runtime overhead.
+    icon: ⚡
+    link: /guide/concepts/command-buffer
+  - title: Retained Mode with Per-Subtree Dirty Tracking
+    details: The GPU is only invoked when something actually changes, and only affected subtrees rebuild. Built for mobile battery life.
+    icon: 🔋
+    link: /guide/concepts/dirty-tracking
+  - title: Arena-Based Widget Storage
+    details: Widgets reference each other by WidgetId, not by pointer. Solves Rust's borrow-checker UI problem and maps to game-engine ECS patterns.
+    icon: 🧩
+    link: /guide/concepts/widget-arena
+  - title: CSS Flexbox via Taffy
+    details: Familiar flex layout, pure-Rust implementation. Same model as React Native, no Yoga C dependency.
+    icon: 📐
+    link: /guide/concepts/vnode-tree
+  - title: 30+ Built-in Components
+    details: Layout, typography, input, display, navigation, and data components ship with v1. Extend via XML templates or Rust.
+    icon: 🧱
+    link: /api/components/
 ---

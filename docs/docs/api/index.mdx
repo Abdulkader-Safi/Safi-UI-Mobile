@@ -3,4 +3,45 @@ title: API Overview
 overview: true
 ---
 
-This is an API Overview page which outlines all the available APIs.
+# Safi-UI API Reference
+
+:::warning Status: Specification (v1.0)
+None of the APIs documented here are implemented yet. They reflect the planned v1.0 surface from `PRD.md`.
+:::
+
+The Safi-UI API splits into four areas:
+
+## Built-in Components
+
+XML tags shipped with the library — layout, typography, input, display, navigation, and data components. **Target: 30+ components at v1 launch.**
+
+- [Layout](/api/components/layout) — `<Screen>`, `<View>`, `<Row>`, `<Column>`, `<Stack>`, `<ScrollView>`, `<SafeAreaView>`, `<Spacer>`
+- [Typography](/api/components/typography) — `<Text>`, `<Heading>`, `<Label>`, `<Code>`
+- [Input](/api/components/input) — `<Button>`, `<Input>`, `<TextArea>`, `<Checkbox>`, `<Switch>`, `<Select>`, `<Slider>`
+- [Display](/api/components/display) — `<Image>`, `<Avatar>`, `<Icon>`, `<Badge>`, `<Divider>`, `<ProgressBar>`, `<Spinner>`, `<Tooltip>`
+- [Navigation](/api/components/navigation) — `<NavBar>`, `<TabBar>`, `<Drawer>`, `<Modal>`, `<BottomSheet>`
+- [Data](/api/components/data) — `<FlatList>`, `<Card>`, `<Table>`, `<EmptyState>`
+
+## Core API
+
+The Rust types and traits the framework is built on. Used when writing custom components or extending the framework.
+
+- [`VNode`](/api/core/vnode) — virtual DOM node
+- [`UIContext`](/api/core/ui-context) — frame state passed to every `build()`
+- [`WidgetArena`](/api/core/widget-arena) — flat widget storage indexed by `WidgetId`
+- [`CommandBuffer`](/api/core/command-buffer) — typed draw commands
+- [`DirtyTracker`](/api/core/dirty-tracker) — per-subtree invalidation
+- [`StateStore`](/api/core/state-store) — reactive key-value store
+- [`EventBus`](/api/core/event-bus) — named event pub/sub
+- [`PropUtils`](/api/core/prop-utils) — typed prop parsing
+- [`Component` trait](/api/core/component-trait) — what every widget implements
+- [`GestureRecognizer`](/api/core/gesture-recognizer) — touch → semantic gesture
+
+## Macros
+
+- [`vnode!`](/api/macros#vnode) — programmatic `VNode` tree construction
+- [`register_component!`](/api/macros#register_component) — register a Rust component
+
+## CLI Commands
+
+- [`safi`](/api/commands) — project scaffolding, generation, dev, build, lint, preview (planned v1.1)
