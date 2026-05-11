@@ -1,18 +1,20 @@
 # Safi-UI, Product Requirements Document
 
-**v2.0 | Safi Studio**
+**v2.1 | Safi Studio**
+
+> **v2.1 change note:** All 15 open questions from the v2.0 review session are resolved and incorporated throughout this document. Section 19 provides a quick-reference summary of every decision.
 
 ---
 
-| Field        | Value                    |
-| ------------ | ------------------------ |
-| **Version**  | 2.0, Draft               |
-| **Status**   | In Review                |
-| **Date**     | May 2026                 |
-| **Author**   | Abdul Kader Safi         |
-| **Project**  | Safi Studio, Open Source |
-| **Language** | Rust (2021 Edition)      |
-| **License**  | MIT (proposed)           |
+| Field        | Value                       |
+| ------------ | --------------------------- |
+| **Version**  | 2.1, Decisions Incorporated |
+| **Status**   | In Review                   |
+| **Date**     | May 2026                    |
+| **Author**   | Abdul Kader Safi            |
+| **Project**  | Safi Studio, Open Source    |
+| **Language** | Rust (2021 Edition)         |
+| **License**  | MIT (proposed)              |
 
 ---
 
@@ -42,7 +44,7 @@ These frameworks introduce managed runtimes that significantly increase binary s
 
 ### 2.3 Why Not ImGui or MicroUI Directly?
 
-Both are immediate-mode libraries designed for developer tooling. They redraw every frame regardless of whether anything changed (battery drain on mobile), have no flex layout system, treat touch as mouse emulation, use bitmap fonts that are unusable at mobile DPI, and have no component reuse model.
+Both are immediate-mode libraries designed for developer tooling. They redraw every frame regardless of whether anything changed (battery drain on mobile), have no flex layout system, treat touch as mouse emulation, use bitmap fonts unusable at mobile DPI, and have no component reuse model.
 
 Safi-UI is architecturally inspired by MicroUI's command list pattern, that core idea is retained, repurposed, and rebuilt for production mobile use in Rust.
 
@@ -57,15 +59,17 @@ A declarative XML-driven mobile UI framework in pure Rust on SDL3 does not exist
 ### 3.1 Goals
 
 - Provide an XML-driven, declarative UI authoring experience for Android and iOS
-- Implement a retained-mode, dirty-driven repaint system for battery efficiency
+- Implement a retained-mode, **per-subtree** dirty repaint system for battery efficiency
 - Use SDL3 and SDL_GPU with native Vulkan on Android and native Metal on iOS, no translation layers
 - Rebuild MicroUI's command list architecture in Rust with mobile-first design
 - Use Taffy (pure Rust) for CSS Flexbox-compatible layout computation
-- Support hot-reload of XML files in development mode without recompilation
+- Support hot-reload of XML files in development mode with **seamless state preservation**
 - Ship as a Cargo library with full Android NDK and iOS Xcode integration
 - Provide a reactive state store and named event bus for component communication
 - Support a full component system: built-in components and user-defined components via XML templates or Rust registration
 - Build a community around easy XML authoring, users write XML, not Rust
+- Support FlatList virtualization with windowed recycling for 1k+ items from v1
+- Support reverse-infinite-scroll (chat-style) in FlatList from v1
 
 ### 3.2 Non-Goals (v1)
 
@@ -76,6 +80,9 @@ A declarative XML-driven mobile UI framework in pure Rust on SDL3 does not exist
 - Accessibility (screen reader) support, reserved props stubbed for v2
 - WebAssembly target
 - Scripting language bindings (Lua, Python), v2 stretch goal
+- **Multi-window** (iPad split-view, Android freeform), deliberate v1 trade-off
+- **Navigation stack**, deferred to v1.1
+- **C FFI custom component registration**, Rust-only in v1
 
 ---
 
@@ -95,13 +102,11 @@ A declarative XML-driven mobile UI framework in pure Rust on SDL3 does not exist
 
 ### 5.1 Core Design Philosophy
 
-Safi-UI is built on three architectural pillars:
-
 **Pillar 1, Command List Pattern (from MicroUI)**
 All rendering is expressed as a flat list of typed commands emitted during the build phase and consumed by the SDL_GPU renderer. No component ever calls GPU APIs directly. This decouples UI logic from rendering completely and enables efficient GPU batching.
 
-**Pillar 2, Retained Mode with Dirty Tracking**
-The UI does not redraw every frame. A dirty flag system tracks which nodes have changed. The GPU is only invoked when something actually needs repainting. This is essential for mobile battery life.
+**Pillar 2, Retained Mode with Per-Subtree Dirty Tracking**
+The UI does not redraw every frame. A per-subtree dirty flag system tracks exactly which nodes have changed, keyed by `WidgetId`. The GPU is only invoked when something actually needs repainting, and only affected subtrees are rebuilt. This is a v1 requirement, not a v1.1 retrofit.
 
 **Pillar 3, Arena-Based Widget Storage**
 All widgets live in a flat arena indexed by `WidgetId`. Widgets reference each other by ID, not by pointer. This solves Rust's borrow checker challenges with UI trees (no `Rc<RefCell<>>`, no cycles) and maps naturally to the game-engine ECS pattern.
@@ -110,37 +115,40 @@ All widgets live in a flat arena indexed by `WidgetId`. Widgets reference each o
 
 | Layer       | Module                      | Responsibility                                         |
 | ----------- | --------------------------- | ------------------------------------------------------ |
-| 1. Source   | XML Files (`assets/ui/`)    | UI authored as `.xml` files, loaded at runtime         |
-| 2. Parse    | `XmlParser` (roxmltree)     | Parses XML into a `VNode` tree                         |
-| 3. Resolve  | `ComponentRegistry`         | Maps XML tag names to Rust component factories         |
-| 4. Layout   | `LayoutEngine` (Taffy)      | Computes CSS Flexbox layout for every node             |
-| 5. Build    | `UIContext` + `WidgetArena` | Walks tree, calls `Component::build()`, emits commands |
-| 6. Render   | `GpuRenderer` (SDL_GPU)     | Batches and submits command list to Vulkan / Metal     |
-| 7. Platform | `PlatformBridge`            | Safe area, keyboard height, DPI, lifecycle via SDL3    |
+| 1, Source   | XML Files (`assets/ui/`)    | UI authored as `.xml` files, loaded at runtime         |
+| 2, Parse    | `XmlParser` (roxmltree)     | Parses XML into a `VNode` tree                         |
+| 3, Resolve  | `ComponentRegistry`         | Maps XML tag names to Rust component factories         |
+| 4, Layout   | `LayoutEngine` (Taffy)      | Computes CSS Flexbox layout for every node             |
+| 5, Build    | `UIContext` + `WidgetArena` | Walks tree, calls `Component::build()`, emits commands |
+| 6, Render   | `GpuRenderer` (SDL_GPU)     | Batches and submits command list to Vulkan / Metal     |
+| 7, Platform | `PlatformBridge`            | Safe area, keyboard height, DPI, lifecycle via SDL3    |
 
 ### 5.3 Data Flow
 
 ```
 XML File
-  └─► XmlParser::parse()           →  VNode tree
-        └─► LayoutEngine::compute()    →  VNode tree + LayoutRect (Taffy)
-              └─► DirtyTracker::check()
+  └─► XmlParser::parse()              →  VNode tree (id + key fields)
+        └─► LayoutEngine::compute()       →  VNode tree + LayoutRect (Taffy)
+              └─► DirtyTracker::check()       (per-subtree, WidgetId-keyed)
                     └─► [if dirty] UIContext::build()
                           └─► ComponentRegistry::resolve(tag)
                                 └─► Component::build(ctx, props, bounds)
                                       └─► CommandBuffer::push(command)
                                             └─► GpuRenderer::flush()
-                                                  └─► SDL_GPU
-                                                        ├─► Vulkan (Android)
-                                                        └─► Metal (iOS)
+                                                  ├─► Vulkan (Android)
+                                                  └─► Metal (iOS)
 
 SDL3 Event Loop
   └─► SDL_FINGER_* events
         └─► GestureRecognizer
               └─► HitTest (reverse Z walk on WidgetArena)
                     └─► Component::on_gesture()
-                          └─► EventBus / StateStore update
-                                └─► DirtyTracker::mark_dirty()
+                          └─► EventBus / StateStore update (main thread only)
+                                └─► DirtyTracker::mark_dirty(widget_id)
+
+Background threads
+  └─► Image decode (thread pool)
+        └─► channel → main thread → SDL_GPU upload → mark_dirty
 ```
 
 ### 5.4 Component Resolution Order
@@ -157,14 +165,17 @@ SDL3 Event Loop
 
 Every XML element is parsed into a `VNode`. It is the single data structure that flows through the parse, layout, and build phases.
 
+**Identity and keying:** Stateful components (`Input`, `ScrollView`, `FlatList` items, `BottomSheet`, etc.) require an `id` prop. A separate `key` prop (React-style, scoped to siblings) is distinct from `id` (globally unique) and is used by FlatList recycling to preserve item state across data reorders.
+
 ```rust
 pub struct VNode {
-    pub tag: String,
-    pub props: Props,                    // HashMap<String, String>
-    pub children: Vec<VNode>,
+    pub tag:          String,
+    pub props:        Props,           // HashMap<String, String>
+    pub children:     Vec<VNode>,
     pub text_content: Option<String>,
-    pub layout: LayoutRect,              // populated by LayoutEngine
-    pub id: Option<String>,              // optional, for StateStore binding
+    pub layout:       LayoutRect,      // populated by LayoutEngine
+    pub id:           Option<String>,  // required for stateful components
+    pub key:          Option<String>,  // sibling-scoped, for list recycling
 }
 
 pub type Props = HashMap<String, String>;
@@ -183,14 +194,14 @@ All prop values are strings. Components parse them via `PropUtils` helpers. Coor
 
 `UIContext` is the central frame state. It owns the `CommandBuffer`, `DirtyTracker`, `FocusSystem`, and `ClipStack`. It is passed by mutable reference to every `Component::build()` call.
 
-`WidgetArena` is the flat storage for all widget instances. Widgets reference each other by `WidgetId` (a `u32` index), never by pointer. This is the arena pattern that solves Rust's borrow checker UI problem cleanly.
+`WidgetArena` is the flat storage for all widget instances. Widgets reference each other by `WidgetId` (a `u32` index), never by pointer.
 
 ```rust
 pub type WidgetId = u32;
 
 pub struct WidgetArena {
     widgets:    Vec<Box<dyn Component>>,
-    yoga_nodes: Vec<taffy::NodeId>,
+    taffy_nodes: Vec<taffy::NodeId>,
     bounds:     Vec<LayoutRect>,
     children:   Vec<Vec<WidgetId>>,
     parent:     Vec<Option<WidgetId>>,
@@ -208,7 +219,7 @@ pub struct UIContext {
 
 ### 6.3 CommandBuffer
 
-The CommandBuffer is a fixed-capacity array of typed draw commands, allocated once at startup. No heap allocation occurs during a frame. This is MicroUI's core insight, preserved and improved.
+A growable array of typed draw commands. The initial capacity is set at `App::init()` time (default: 8192). If the buffer reaches capacity it grows and a warning is logged. A debug-mode warning is emitted when utilisation crosses 75% on any frame.
 
 ```rust
 pub enum Command {
@@ -221,40 +232,38 @@ pub enum Command {
     ClipPop,
 }
 
-pub struct CommandBuffer {
-    commands: Box<[Command; COMMAND_BUFFER_CAPACITY]>,
-    len: usize,
-}
-
-const COMMAND_BUFFER_CAPACITY: usize = 8192;
+// Grows on overflow (log + grow, never drop or panic).
+// Initial cap configurable at App::init().
+// Debug warning at 75% utilisation.
+const COMMAND_BUFFER_CAPACITY_DEFAULT: usize = 8192;
 ```
 
-The `GpuRenderer` iterates the command list after `UIContext::build()` completes and batches consecutive same-type commands into single GPU draw calls.
+### 6.4 DirtyTracker, Per-Subtree Granularity
 
-### 6.4 DirtyTracker
-
-The `DirtyTracker` ensures the GPU is only invoked when the UI has actually changed. On a static screen with no user interaction, no GPU work is performed between frames.
+The `DirtyTracker` is per-subtree from v1, keyed by `WidgetId`. `StateStore::set()` tracks which `WidgetId`s subscribed to which keys, so only those subtrees are invalidated. The GPU renderer tracks which command-buffer ranges changed, avoiding full buffer rebuilds on partial updates.
 
 ```rust
 pub struct DirtyTracker {
-    frame_dirty: bool,
-    state_hash:  u64,
+    dirty_widgets: HashSet<WidgetId>,            // per-subtree dirty bits
+    state_subs:    HashMap<String, Vec<WidgetId>>, // key → subscribed widgets
 }
 
 impl DirtyTracker {
-    pub fn mark_dirty(&mut self)              { self.frame_dirty = true; }
-    pub fn needs_redraw(&self) -> bool        { self.frame_dirty }
-    pub fn on_frame_complete(&mut self)       { self.frame_dirty = false; }
-    pub fn on_state_changed(&mut self, new_hash: u64) {
-        if new_hash != self.state_hash {
-            self.state_hash  = new_hash;
-            self.frame_dirty = true;
+    pub fn mark_dirty(&mut self, id: WidgetId)    { self.dirty_widgets.insert(id); }
+    pub fn needs_redraw(&self) -> bool             { !self.dirty_widgets.is_empty() }
+    pub fn on_frame_complete(&mut self)            { self.dirty_widgets.clear(); }
+    pub fn subscribe(&mut self, key: &str, id: WidgetId) {
+        self.state_subs.entry(key.to_string()).or_default().push(id);
+    }
+    pub fn invalidate_key(&mut self, key: &str) {
+        if let Some(ids) = self.state_subs.get(key) {
+            for &id in ids { self.dirty_widgets.insert(id); }
         }
     }
 }
 ```
 
-The main loop only calls `UIContext::build()` and `GpuRenderer::flush()` when `needs_redraw()` returns true. Otherwise it calls `std::thread::sleep(Duration::from_millis(8))` and yields the CPU.
+The main loop only calls `UIContext::build()` and `GpuRenderer::flush()` on dirty subtrees. On a fully static screen, no GPU work is performed between frames.
 
 ### 6.5 XmlParser
 
@@ -282,11 +291,7 @@ The `LayoutEngine` wraps the Taffy crate to compute CSS Flexbox layout from the 
 | `gap`              | `Size<LengthPercentage>`                                                    |
 | `wrap`             | `FlexWrap::NoWrap / Wrap / WrapReverse`                                     |
 
-The layout pass runs once per frame when the VNode tree is dirty. On static screens the layout is computed once at load time and cached.
-
 ### 6.7 ComponentRegistry
-
-A registry mapping tag name strings to factory closures. Supports both built-in registration (at library init) and user registration (at app startup).
 
 ```rust
 pub type ComponentFactory =
@@ -295,26 +300,13 @@ pub type ComponentFactory =
 pub struct ComponentRegistry {
     factories: HashMap<String, ComponentFactory>,
 }
-
-impl ComponentRegistry {
-    pub fn register<C, F>(&mut self, tag: &str, factory: F)
-    where
-        C: Component + 'static,
-        F: Fn(&Props) -> C + Send + Sync + 'static,
-    {
-        self.factories.insert(
-            tag.to_string(),
-            Box::new(move |props| Box::new(factory(props))),
-        );
-    }
-}
 ```
 
-The `register_component!(tag, Type)` macro is provided as a convenience wrapper. Duplicate registrations log a warning; the last registration wins.
+Supports both built-in registration (at library init) and user registration (at app startup). The `register_component!(tag, Type)` macro is provided as a convenience wrapper. Duplicate registrations log a warning; the last registration wins.
 
 ### 6.8 Component Trait
 
-Every widget implements `Component`. The trait separates the build phase (emit commands) from hit testing and gesture handling.
+Every widget implements `Component`. `build()` is strictly **main-thread**. `Component` is `Send + Sync` to support registration from any thread, even though `build()` always runs on the main thread.
 
 ```rust
 pub trait Component: Send + Sync {
@@ -322,24 +314,35 @@ pub trait Component: Send + Sync {
     fn build(&self, ctx: &mut UIContext, bounds: LayoutRect);
 
     // Return true if the point is inside this widget's interactive area
-    fn hit_test(&self, point: Vec2) -> bool {
-        self.bounds().contains(point)
-    }
+    fn hit_test(&self, point: Vec2) -> bool { self.bounds().contains(point) }
 
-    // Handle a recognized gesture; return true to consume it
+    // Handle a recognised gesture; return true to consume it
     fn on_gesture(&mut self, gesture: Gesture) -> bool { false }
 
     // Lifecycle hooks
-    fn on_mount(&mut self, _ctx: &mut UIContext)   {}
-    fn on_unmount(&mut self, _ctx: &mut UIContext) {}
+    fn on_mount(&mut self, _ctx: &mut UIContext)    {}  // fires on first appearance in any frame
+    fn on_unmount(&mut self, _ctx: &mut UIContext)  {}  // fires on removal (incl. FlatList recycle)
+    fn on_layout(&mut self, _bounds: LayoutRect)    {}  // fires after layout computed
 
     fn bounds(&self) -> LayoutRect;
 }
 ```
 
+**Lifecycle semantics:**
+
+- `on_mount` fires the **first time** a component appears in any frame
+- `visible="false"` skips `build()` only, does **not** fire `on_unmount`; the instance remains alive
+- Virtualised FlatList items fire `on_unmount` when scrolled out of the recycle window and `on_mount` when recycled back in
+- `on_layout` fires after Taffy has computed final bounds, use this to position tooltips or measure-dependent children
+
 ### 6.9 GestureRecognizer
 
-A gesture recognizer layer sits between SDL3 finger events and the component system. It translates raw touch events into semantic gestures before routing them to components via hit testing.
+| Gesture     | Trigger             | Threshold                | Used By                     |
+| ----------- | ------------------- | ------------------------ | --------------------------- |
+| `Tap`       | Finger down + up    | < 200ms, < 10dp movement | Button, Checkbox, `onPress` |
+| `LongPress` | Finger held         | > 500ms                  | Tooltip, context menus      |
+| `Pan`       | Continuous movement | ,                        | ScrollView drag             |
+| `Swipe`     | Fast pan + release  | velocity threshold       | Drawer, BottomSheet dismiss |
 
 ```rust
 pub enum Gesture {
@@ -348,63 +351,58 @@ pub enum Gesture {
     Pan       { delta: Vec2, velocity: Vec2 },
     Swipe     { direction: SwipeDirection, velocity: f32 },
 }
-
-pub struct GestureRecognizer {
-    tap:        TapRecognizer,        // finger down + up < 200ms, < 10dp movement
-    long_press: LongPressRecognizer,  // finger held > 500ms
-    pan:        PanRecognizer,        // continuous move, used by ScrollView
-    swipe:      SwipeRecognizer,      // fast pan with release velocity
-}
 ```
-
-Recognizers operate on `SDL_EVENT_FINGER_DOWN`, `SDL_EVENT_FINGER_MOTION`, and `SDL_EVENT_FINGER_UP`. Multi-touch is fully supported; each finger has its own ID.
 
 ### 6.10 Hot-Reload System (Dev Mode)
 
-In development builds (`features = ["dev"]`), the `HotReloadWatcher` monitors XML files for modification.
+Hot-reload is **seamless**. All component state is preserved across re-parses. Stateful components are matched between old and new trees using their stable `id` prop. Components without a matching `id` in the new tree are treated as new instances.
 
-- **Android:** Uses `inotify` via JNI bridge
-- **iOS:** Uses `kqueue` via Objective-C bridge
+**State preservation:** scroll offsets, input cursor positions, open/closed states, focus, and in-flight gesture state are preserved by mapping old `WidgetId`s to new `WidgetId`s via the stable `id` prop. After re-parse, event subscriptions are re-registered and the `DirtyTracker` marks affected subtrees dirty.
 
-When a modification is detected, the watcher signals the main thread to re-parse and re-layout the affected screen on the next frame. The previous VNode tree is atomically replaced. In release builds the watcher is compiled out entirely with `#[cfg(feature = "dev")]`.
-
-| Attribute              | Detail                                                                  |
-| ---------------------- | ----------------------------------------------------------------------- |
-| **Feature flag**       | `safi-ui = { features = ["dev"] }` in Cargo.toml                        |
-| **Reload latency**     | < 100ms from file save to new frame                                     |
-| **Reload scope**       | Affected screen only                                                    |
-| **State preservation** | `StateStore` values preserved; event subscriptions re-registered        |
-| **Error display**      | Parse errors shown as in-app red overlay with file name and line number |
+| Attribute              | Detail                                                          |
+| ---------------------- | --------------------------------------------------------------- |
+| **Feature flag**       | `safi-ui = { features = ["dev"] }` in Cargo.toml                |
+| **Trigger**            | File modification timestamp change on any watched `.xml` file   |
+| **Watch scope**        | `assets/ui/` directory tree (recursive)                         |
+| **Reload latency**     | < 100ms from file save to new frame                             |
+| **Reload scope**       | Affected screen only                                            |
+| **State preservation** | Seamless via stable `id` mapping, no visible flash              |
+| **Error display**      | See §14 for dev error overlay UX                                |
+| **Release builds**     | `HotReloadWatcher` compiled out entirely, zero runtime overhead |
 
 ### 6.11 EventBus
 
-A thread-safe publish/subscribe bus for named events. Components emit events by name; Rust handlers subscribe by name.
+A thread-safe publish/subscribe bus for named events. `emit()` and handler registration are **main-thread-only**. `post_async()` is the safe cross-thread path, queuing the event for dispatch on the next frame.
 
 ```rust
-// Register a handler
+// Register a handler (main thread)
 EventBus::global().on("auth.login", || {
     AuthService::login();
 });
 
-// Emit (also triggered from XML: onPress="auth.login")
+// Emit synchronously (main thread only)
 EventBus::global().emit("auth.login");
 
-// Cross-thread async posting
+// Safe cross-thread post, dispatched on next frame
 EventBus::global().post_async("data.refresh");
+
+// In XML:  onPress="auth.login"
+// Dynamic: onPress="{{dynamicAction}}"  ← binding supported
 ```
 
-Event names use dot notation by convention. Synchronous dispatch on the main thread. `post_async` queues the event to be dispatched on the next frame.
+Event names use dot notation by convention.
 
 ### 6.12 StateStore
 
-A reactive key-value store. Prop bindings use `{{key}}` syntax in XML. Changes automatically mark the UI dirty via `DirtyTracker`.
+A reactive key-value store. Prop bindings use `{{key}}` syntax in XML. `StateStore::set()` calls `DirtyTracker::invalidate_key()`, so only subscribed subtrees rebuild. `set()` and `get()` are **main-thread-only**; background threads use `EventBus::post_async` to trigger state updates.
 
 ```rust
-// Set a value
+// App code uses the global singleton
 StateStore::global().set("user.name", "Safi");
-
-// Read a value
 let name = StateStore::global().get("user.name");
+
+// Tests create isolated instances
+let store = StateStore::new();
 
 // Subscribe to changes
 StateStore::global().subscribe("user.name", |value| {
@@ -412,25 +410,32 @@ StateStore::global().subscribe("user.name", |value| {
 });
 ```
 
-In XML: `<Text>{{user.name}}</Text>`, resolved at build time from the store. The store is not persisted to disk in v1.
+**Binding rules:**
 
-### 6.13 PropUtils
+- Missing key resolves to **empty string** (never an error)
+- Bindings are allowed in **any prop**, including `width`, `src`, `onPress`
+- Composite bindings are supported: `"Hello {{name}}!"`, `"{{first}} {{last}}"`
+- Dynamic event bindings are supported: `onPress="{{dynamicAction}}"`
+- Type coercion: bound values are strings; `PropUtils::parse_*` coerces as normal
 
-A module of typed prop parsing helpers used by all components.
+The store is not persisted to disk in v1.
+
+### 6.13 UIInstance and App
+
+A `UIInstance` / `App` handle owns its own `StateStore` and `EventBus`. `::global()` is a convenience returning the default instance. Multi-window is explicitly out of scope for v1; one process = one app is the expected model. Unit tests create new `StateStore` and `EventBus` instances per test case for clean isolation.
+
+### 6.14 PropUtils
+
+A module of typed prop parsing helpers used by all components. Always returns a typed default, no component ever receives an unhandled `None`.
 
 ```rust
 let label   = props.get_str("label", "Button");
 let size    = props.parse_f32("size", 14.0);
-let columns = props.parse_i32("columns", 1);
 let visible = props.parse_bool("visible", true);
 let color   = props.parse_color("color", Color::WHITE);
 let width   = props.parse_dim("width", Dimension::Auto);
-let align   = props.parse_enum("align", Align::Start, &[
-    ("start",  Align::Start),
-    ("center", Align::Center),
-    ("end",    Align::End),
-]);
-// Resolves {{key}} bindings from StateStore
+
+// Resolves {{key}} bindings (missing key → "")
 let text = props.resolve_binding("label", state_store);
 ```
 
@@ -440,23 +445,18 @@ let text = props.resolve_binding("label", state_store);
 
 ### 7.1 Font Rasterization
 
-Safi-UI uses `fontdue` for font rasterization, a pure Rust font engine with no C dependencies and no FreeType requirement.
-
-- Fonts are loaded from `.ttf` or `.otf` files bundled in app assets
-- Glyphs are rasterized at startup into a GPU texture atlas
-- The atlas is rebuilt when the DPI scale changes (orientation change, display change)
-- Default bundled fonts: **Inter** (Latin scripts) and **Noto Sans Arabic** (RTL support)
+Safi-UI uses `fontdue` for font rasterization, a pure Rust font engine with no C dependencies and no FreeType requirement. Glyphs are rasterized into a GPU texture atlas at startup and rebuilt when the DPI scale changes. Default bundled fonts: **Inter** (Latin scripts) and **Noto Sans Arabic** (RTL support).
 
 ### 7.2 Text Shaping
 
-For complex scripts and RTL text, Safi-UI uses the `rustybuzz` crate (a pure Rust port of HarfBuzz) for text shaping before rasterization. This enables correct Arabic, Hindi, Thai, and other complex script rendering.
+The `rustybuzz` crate (a pure Rust port of HarfBuzz) handles text shaping for complex scripts and RTL text before rasterization. This enables correct Arabic, Hindi, Thai, and other complex script rendering.
 
 ### 7.3 Density-Independent Pixels
 
-All coordinates in the XML authoring layer are in **dp** (density-independent pixels). Conversion to physical pixels happens at the `GpuRenderer` boundary:
+All XML coordinates are in **dp** (density-independent pixels). Conversion to physical pixels happens at the `GpuRenderer` boundary:
 
 ```
-physical_pixels = dp_value * dpi_scale
+physical_pixels = dp_value × dpi_scale
 
 Pixel 8 (420 dpi):   dpi_scale = 2.625
 iPhone 15 Pro:        dpi_scale = 3.0
@@ -471,8 +471,6 @@ Desktop 1080p:        dpi_scale = 1.0
 
 ### 8.1 SDL3 and SDL_GPU
 
-Safi-UI uses SDL3's `SDL_GPU` API as the GPU abstraction layer. SDL_GPU selects the native GPU backend per platform automatically:
-
 | Platform | GPU Backend | Notes                        |
 | -------- | ----------- | ---------------------------- |
 | Android  | Vulkan 1.1  | Native, no translation layer |
@@ -482,7 +480,7 @@ No OpenGL ES. No MoltenVK. No translation layers of any kind.
 
 ### 8.2 Shader Strategy
 
-Safi-UI ships GLSL shaders compiled to both SPIR-V (Vulkan / Android) and MSL (Metal / iOS) at build time via `glslc` in `build.rs`. The correct binary is selected at runtime by SDL_GPU's platform detection.
+Safi-UI ships GLSL shaders compiled to both SPIR-V (Vulkan / Android) and MSL (Metal / iOS) at build time via `glslc` in `build.rs`.
 
 | Shader        | Purpose                                                          |
 | ------------- | ---------------------------------------------------------------- |
@@ -494,18 +492,24 @@ Safi-UI ships GLSL shaders compiled to both SPIR-V (Vulkan / Android) and MSL (M
 
 ### 8.3 GPU Batching
 
-The `GpuRenderer` iterates the `CommandBuffer` after each build phase and batches consecutive compatible commands into single draw calls. A typical screen of 50–80 components produces 5–15 actual GPU draw calls.
+The `GpuRenderer` iterates the `CommandBuffer` after each build phase and batches consecutive compatible commands into single draw calls. A typical screen of 50–80 components produces 5–15 actual GPU draw calls. The renderer tracks which command-buffer ranges changed (per-subtree dirty) to avoid full buffer rebuilds on partial updates.
 
-### 8.4 Frame Loop
+### 8.4 Threading Model
+
+- `Component::build()` is strictly **main-thread**
+- `StateStore::set()` and `EventBus::emit()` are **main-thread-only**
+- `EventBus::post_async()` is the safe cross-thread posting path
+- Background image decode signals the main thread via a **channel**; the main thread uploads to SDL_GPU and marks dirty
+- `Component` is `Send + Sync` to allow registration from any thread, not because `build()` runs off-thread
+
+### 8.5 Frame Loop
 
 ```rust
 loop {
-    // 1. Poll SDL3 events
     for event in sdl.event_pump() {
         match event {
             Event::FingerDown { id, x, y, .. } => {
                 gesture_recognizer.finger_down(id, Vec2::new(x, y));
-                ctx.dirty.mark_dirty();
             }
             Event::WillEnterBackground => gpu.release_resources(),
             Event::DidEnterForeground  => gpu.recreate_resources(),
@@ -515,14 +519,18 @@ loop {
         }
     }
 
-    // 2. Process gestures → component on_gesture → state updates
+    // Process decode completions from background thread pool
+    while let Ok(decoded) = image_channel.try_recv() {
+        gpu.upload_texture(decoded);
+        dirty.mark_dirty(decoded.owner_id);
+    }
+
     gesture_recognizer.flush(&mut arena, &mut event_bus);
 
-    // 3. Only render if dirty
     if ctx.dirty.needs_redraw() {
         layout_engine.compute_if_dirty(&mut vnode_tree);
         ctx.commands.clear();
-        build_tree(&mut ctx, &arena, &vnode_tree);
+        build_dirty_subtrees(&mut ctx, &arena, &vnode_tree);
         gpu_renderer.flush(&ctx.commands);
         ctx.dirty.on_frame_complete();
     } else {
@@ -535,38 +543,47 @@ loop {
 
 ## 9. Platform Bridge
 
-SDL3 handles window creation, event loop, and GPU surface on both platforms. A thin `PlatformBridge` module supplements SDL3 with mobile-specific information SDL3 does not expose.
-
 ### 9.1 Android
 
-| Attribute       | Detail                                                                    |
-| --------------- | ------------------------------------------------------------------------- |
-| **NDK version** | r25 or later                                                              |
-| **API level**   | minSdk 24 (Android 7.0), targetSdk 35                                     |
-| **GPU**         | Vulkan 1.1 via SDL_GPU                                                    |
-| **Surface**     | SDL3 manages `ANativeWindow` → Vulkan surface                             |
-| **Input**       | SDL3 `SDL_EVENT_FINGER_*`, multi-touch native                             |
-| **Keyboard**    | `SDL_EVENT_TEXT_INPUT` + JNI bridge for keyboard height                   |
-| **Safe area**   | `WindowInsetsCompat` via JNI → `PlatformBridge::safe_area()`              |
-| **DPI**         | `SDL_GetDisplayContentScale()`                                            |
-| **Lifecycle**   | `SDL_EVENT_WILL_ENTER_BACKGROUND / FOREGROUND / LOW_MEMORY / TERMINATING` |
-| **Build tool**  | `cargo-ndk`                                                               |
+| Attribute       | Detail                                                       |
+| --------------- | ------------------------------------------------------------ |
+| **NDK version** | r25 or later                                                 |
+| **API level**   | minSdk 24 (Android 7.0, Vulkan guaranteed), targetSdk 35     |
+| **GPU**         | Vulkan 1.1 via SDL_GPU                                       |
+| **Input**       | SDL3 `SDL_EVENT_FINGER_*`, multi-touch native                |
+| **Keyboard**    | `SDL_EVENT_TEXT_INPUT` + JNI bridge for keyboard height      |
+| **Safe area**   | `WindowInsetsCompat` via JNI → `PlatformBridge::safe_area()` |
+| **DPI**         | `SDL_GetDisplayContentScale()`                               |
+| **Build tool**  | `cargo-ndk`                                                  |
+| **Assets**      | APK `assets/` dir, accessed via `AAssetManager`              |
 
 ### 9.2 iOS
 
-| Attribute               | Detail                                                                  |
-| ----------------------- | ----------------------------------------------------------------------- |
-| **Minimum iOS version** | 16.0                                                                    |
-| **GPU**                 | Metal via SDL_GPU                                                       |
-| **Surface**             | SDL3 manages `CAMetalLayer` → Metal surface                             |
-| **Input**               | SDL3 `SDL_EVENT_FINGER_*`, UITouch bridged by SDL3                      |
-| **Keyboard**            | `UIKeyboardWillShowNotification` via ObjC bridge → keyboard height      |
-| **Safe area**           | `UIView.safeAreaInsets` via ObjC bridge → `PlatformBridge::safe_area()` |
-| **DPI**                 | `SDL_GetDisplayContentScale()`                                          |
-| **Orientation**         | `SDL_EVENT_DISPLAY_ORIENTATION` → Taffy re-layout                       |
-| **Build tool**          | `cargo-xcode` or `cargo-mobile2`                                        |
+| Attribute               | Detail                                             |
+| ----------------------- | -------------------------------------------------- |
+| **Minimum iOS version** | 16.0                                               |
+| **GPU**                 | Metal via SDL_GPU                                  |
+| **Input**               | SDL3 `SDL_EVENT_FINGER_*`, UITouch bridged by SDL3 |
+| **Keyboard**            | `UIKeyboardWillShowNotification` via ObjC bridge   |
+| **Safe area**           | `UIView.safeAreaInsets` via ObjC bridge            |
+| **DPI**                 | `SDL_GetDisplayContentScale()`                     |
+| **Orientation**         | `SDL_EVENT_DISPLAY_ORIENTATION` → Taffy re-layout  |
+| **Build tool**          | `cargo-xcode` or `cargo-mobile2`                   |
+| **Assets**              | `.app` bundle, accessed via `Bundle.main`          |
 
-### 9.3 Safe Area and Keyboard Layout
+### 9.3 Unified AssetLoader
+
+A unified `AssetLoader` abstraction in Rust wraps `AAssetManager` (Android) and `Bundle.main` (iOS). All asset paths are relative:
+
+| Path Convention         | Contents                                       |
+| ----------------------- | ---------------------------------------------- |
+| `assets/ui/screens/`    | Screen XML files                               |
+| `assets/ui/components/` | User-defined XML components                    |
+| `assets/images/`        | Image assets referenced by `<Image src="...">` |
+
+Hot-reload in dev mode loads from bundled assets (not a dev-machine network path).
+
+### 9.4 Safe Area and Keyboard Layout
 
 The `SafeAreaView` component queries `PlatformBridge::safe_area()` and adds padding insets automatically. When the soft keyboard appears, `PlatformBridge::keyboard_height()` returns the current height in dp. Taffy re-runs layout with a reduced available height, pushing focused inputs into the visible area.
 
@@ -574,7 +591,9 @@ The `SafeAreaView` component queries `PlatformBridge::safe_area()` and adds padd
 
 ## 10. Built-in Component Library
 
-All built-in components accept base layout props (`width`, `height`, `padding`, `margin`, `flex`, `visible`, `opacity`, `id`, `testID`, `onMount`, `onUnmount`, `accessibilityLabel`, `accessibilityRole`) in addition to their specific props.
+All built-in components accept base layout props (`width`, `height`, `padding`, `margin`, `flex`, `visible`, `opacity`, `id`, `key`, `testID`, `onMount`, `onUnmount`, `accessibilityLabel`, `accessibilityRole`) in addition to their specific props.
+
+> **`visible="false"`** hides the component and preserves layout space but does **not** fire `on_unmount`. The component instance remains alive and its state is preserved.
 
 ### 10.1 Layout Components
 
@@ -585,7 +604,7 @@ All built-in components accept base layout props (`width`, `height`, `padding`, 
 | Row          | `<Row>`          | `gap`, `align`, `justify`, `wrap`  | `flexDirection: row`                                      |
 | Column       | `<Column>`       | `gap`, `align`, `justify`          | `flexDirection: column`                                   |
 | Stack        | `<Stack>`        | `align`                            | Absolute-positioned children layered on top of each other |
-| ScrollView   | `<ScrollView>`   | `horizontal`, `showsBar`           | Scrollable via pan gesture                                |
+| ScrollView   | `<ScrollView>`   | `horizontal`, `showsBar`           | `id` required; scroll offset preserved across hot-reload  |
 | SafeAreaView | `<SafeAreaView>` | `edges`                            | Platform safe-area inset padding                          |
 | Spacer       | `<Spacer>`       | `size`                             | `flex: 1` spacer or fixed gap                             |
 
@@ -603,8 +622,8 @@ All built-in components accept base layout props (`width`, `height`, `padding`, 
 | Component | Tag          | Key Props                                                 | Notes                                                      |
 | --------- | ------------ | --------------------------------------------------------- | ---------------------------------------------------------- |
 | Button    | `<Button>`   | `label`, `onPress`, `variant`, `size`, `icon`, `disabled` | `variant`: `primary` \| `secondary` \| `ghost` \| `danger` |
-| Input     | `<Input>`    | `placeholder`, `value`, `onChange`, `type`, `maxLength`   | `type`: `text` \| `password` \| `number` \| `email`        |
-| TextArea  | `<TextArea>` | `placeholder`, `rows`, `onChange`                         | Multiline input                                            |
+| Input     | `<Input>`    | `placeholder`, `value`, `onChange`, `type`, `maxLength`   | `id` required; cursor position preserved                   |
+| TextArea  | `<TextArea>` | `placeholder`, `rows`, `onChange`                         | `id` required; multiline                                   |
 | Checkbox  | `<Checkbox>` | `label`, `checked`, `onChange`                            |                                                            |
 | Switch    | `<Switch>`   | `value`, `onChange`, `label`                              | Toggle switch                                              |
 | Select    | `<Select>`   | `options`, `value`, `onChange`, `placeholder`             | Dropdown picker                                            |
@@ -612,35 +631,37 @@ All built-in components accept base layout props (`width`, `height`, `padding`, 
 
 ### 10.4 Display Components
 
-| Component   | Tag             | Key Props                                 | Notes                                 |
-| ----------- | --------------- | ----------------------------------------- | ------------------------------------- |
-| Image       | `<Image>`       | `src`, `width`, `height`, `radius`, `fit` | `fit`: `cover` \| `contain` \| `fill` |
-| Avatar      | `<Avatar>`      | `src`, `size`, `fallback`, `radius`       | `fallback`: initials string           |
-| Icon        | `<Icon>`        | `name`, `size`, `color`                   | Icon atlas; name maps to UV coords    |
-| Badge       | `<Badge>`       | `text`, `color`, `bg`, `size`             | Small pill label                      |
-| Divider     | `<Divider>`     | `color`, `thickness`, `margin`            | Horizontal rule                       |
-| ProgressBar | `<ProgressBar>` | `value`, `max`, `color`, `height`         |                                       |
-| Spinner     | `<Spinner>`     | `size`, `color`                           | Loading indicator                     |
-| Tooltip     | `<Tooltip>`     | `text`, `position`                        | Wraps child; shows on long-press      |
+| Component   | Tag             | Key Props                                 | Notes                                                                 |
+| ----------- | --------------- | ----------------------------------------- | --------------------------------------------------------------------- |
+| Image       | `<Image>`       | `src`, `width`, `height`, `radius`, `fit` | `fit`: `cover` \| `contain` \| `fill`; resolved from `assets/images/` |
+| Avatar      | `<Avatar>`      | `src`, `size`, `fallback`, `radius`       | `fallback`: initials string                                           |
+| Icon        | `<Icon>`        | `name`, `size`, `color`                   | Icon atlas; name maps to UV coords                                    |
+| Badge       | `<Badge>`       | `text`, `color`, `bg`, `size`             | Small pill label                                                      |
+| Divider     | `<Divider>`     | `color`, `thickness`, `margin`            | Horizontal rule                                                       |
+| ProgressBar | `<ProgressBar>` | `value`, `max`, `color`, `height`         |                                                                       |
+| Spinner     | `<Spinner>`     | `size`, `color`                           | Loading indicator                                                     |
+| Tooltip     | `<Tooltip>`     | `text`, `position`                        | Wraps child; shows on long-press; uses `on_layout` for positioning    |
 
 ### 10.5 Navigation Components
 
-| Component   | Tag             | Key Props                                                | Notes                    |
-| ----------- | --------------- | -------------------------------------------------------- | ------------------------ |
-| NavBar      | `<NavBar>`      | `title`, `leftAction`, `rightAction`, `bg`, `titleColor` | Fixed top navigation bar |
-| TabBar      | `<TabBar>`      | `tabs`, `activeTab`, `onTabChange`, `bg`                 | Bottom tab bar           |
-| Drawer      | `<Drawer>`      | `open`, `onClose`, `side`, `width`                       | Side drawer overlay      |
-| Modal       | `<Modal>`       | `open`, `onClose`, `title`, `size`                       | Centered modal dialog    |
-| BottomSheet | `<BottomSheet>` | `open`, `onClose`, `snapPoints`                          | Slide-up bottom sheet    |
+| Component   | Tag             | Key Props                                                | Notes                                      |
+| ----------- | --------------- | -------------------------------------------------------- | ------------------------------------------ |
+| NavBar      | `<NavBar>`      | `title`, `leftAction`, `rightAction`, `bg`, `titleColor` | Fixed top navigation bar                   |
+| TabBar      | `<TabBar>`      | `tabs`, `activeTab`, `onTabChange`, `bg`                 | Bottom tab bar                             |
+| Drawer      | `<Drawer>`      | `open`, `onClose`, `side`, `width`                       | `id` required; open/closed state preserved |
+| Modal       | `<Modal>`       | `open`, `onClose`, `title`, `size`                       | `id` required; centered modal dialog       |
+| BottomSheet | `<BottomSheet>` | `open`, `onClose`, `snapPoints`                          | `id` required; slide-up bottom sheet       |
 
 ### 10.6 Data Components
 
-| Component  | Tag            | Key Props                                         | Notes                       |
-| ---------- | -------------- | ------------------------------------------------- | --------------------------- |
-| FlatList   | `<FlatList>`   | `data`, `renderItem`, `keyExtractor`, `separator` | `data` is a StateStore key  |
-| Card       | `<Card>`       | `elevation`, `bg`, `radius`, `border`, `padding`  | Elevated container          |
-| Table      | `<Table>`      | `columns`, `data`, `striped`, `border`            | Grid table                  |
-| EmptyState | `<EmptyState>` | `icon`, `title`, `message`, `action`              | Placeholder for empty lists |
+| Component  | Tag            | Key Props                                         | Notes                                                                                           |
+| ---------- | -------------- | ------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| FlatList   | `<FlatList>`   | `data`, `renderItem`, `keyExtractor`, `separator` | Windowed recycling. 1k+ items. Reverse-infinite-scroll supported. `key` prop required on items. |
+| Card       | `<Card>`       | `elevation`, `bg`, `radius`, `border`, `padding`  | Elevated container                                                                              |
+| Table      | `<Table>`      | `columns`, `data`, `striped`, `border`            | Grid table                                                                                      |
+| EmptyState | `<EmptyState>` | `icon`, `title`, `message`, `action`              | Placeholder for empty lists                                                                     |
+
+> **FlatList virtualization:** Uses windowed recycling from v1. Recycled item components fire `on_unmount` when scrolled out and `on_mount` when recycled back into view. The `key` prop (not `WidgetId`) is used for state preservation across data reorders. Without a `key`, item state cannot be preserved when the data array reorders.
 
 ---
 
@@ -664,17 +685,13 @@ Users define reusable components as `.xml` files in `assets/ui/components/`. The
 </Component>
 ```
 
-Usage in any screen file:
+Usage: `<UserCard name="Safi" avatar="safi.png" role="Lead Engineer" onPress="nav.profile" />`
 
-```xml
-<UserCard name="Safi" avatar="safi.png" role="Lead Engineer" onPress="nav.profile" />
-```
-
-Prop substitution uses `{{propName}}` syntax. Default values: `props="name:Anonymous,role:Member"`.
+Default values: `props="name:Anonymous,role:Member"`.
 
 ### 11.2 Rust Registered Components
 
-For components requiring custom rendering, complex state, or GPU-level operations, implement `Component` and register via macro:
+For components requiring custom rendering, implement `Component` and register via macro. Custom component registration is **Rust-only** in v1.
 
 ```rust
 pub struct ChartComponent {
@@ -691,7 +708,6 @@ impl Component for ChartComponent {
             color:  self.color,
             radius: 8.0,
         });
-        // additional custom draw commands
     }
     fn bounds(&self) -> LayoutRect { self.bounds }
 }
@@ -703,11 +719,7 @@ register_component!("Chart", |props| ChartComponent {
 });
 ```
 
-Usage:
-
-```xml
-<Chart data="{{analytics.weekly}}" color="#4F8EF7" height="200" />
-```
+Usage: `<Chart data="{{analytics.weekly}}" color="#4F8EF7" height="200" />`
 
 ---
 
@@ -722,6 +734,7 @@ Usage:
 | **File extension**      | `.xml`                                               |
 | **Screens location**    | `assets/ui/screens/`                                 |
 | **Components location** | `assets/ui/components/`                              |
+| **Images location**     | `assets/images/`                                     |
 | **Screen naming**       | lowercase-hyphen: `home-screen.xml`                  |
 | **Component naming**    | PascalCase: `UserCard.xml`                           |
 | **Comments**            | Standard XML: `<!-- -->`                             |
@@ -729,58 +742,74 @@ Usage:
 
 ### 12.2 Prop Value Types
 
-| Type           | Format / Examples                                                               |
-| -------------- | ------------------------------------------------------------------------------- |
-| **String**     | `label="Sign In"`                                                               |
-| **Number**     | `size="18"`, `padding="12"`, `opacity="0.8"`                                    |
-| **Boolean**    | `disabled="true"`, `bold="false"`                                               |
-| **Color**      | `"#RRGGBB"`, `"#AARRGGBB"`, `"rgba(255,100,0,0.5)"`, `"white"`, `"transparent"` |
-| **Dimension**  | `"200"` (dp), `"50%"` (percent of parent), `"auto"`                             |
-| **Binding**    | `"{{stateKey}}"`, resolved from StateStore at build time                        |
-| **Event name** | `"auth.login"`, `"nav.back"`, `"modal.open"`                                    |
+| Type                  | Format / Examples                                                               |
+| --------------------- | ------------------------------------------------------------------------------- |
+| **String**            | `label="Sign In"`                                                               |
+| **Number**            | `size="18"`, `padding="12"`, `opacity="0.8"`                                    |
+| **Boolean**           | `disabled="true"`, `bold="false"`                                               |
+| **Color**             | `"#RRGGBB"`, `"#AARRGGBB"`, `"rgba(255,100,0,0.5)"`, `"white"`, `"transparent"` |
+| **Dimension**         | `"200"` (dp), `"50%"` (percent of parent), `"auto"`                             |
+| **Binding**           | `"{{stateKey}}"`, resolves from StateStore; missing key → `""`                  |
+| **Composite binding** | `"Hello {{name}}!"`, `"{{first}} {{last}}"`                                     |
+| **Event name**        | `"auth.login"`, `"nav.back"`, `"{{dynamicAction}}"`, bindings allowed           |
 
 ### 12.3 Special Props (All Components)
 
-| Prop                 | Purpose                                                          |
-| -------------------- | ---------------------------------------------------------------- |
-| `id`                 | Unique identifier for StateStore bindings and EventBus targeting |
-| `visible`            | Boolean; hides component but preserves layout space              |
-| `opacity`            | 0.0–1.0 float; applied to entire subtree                         |
-| `testID`             | String identifier for automated UI testing                       |
-| `onMount`            | Event name fired when component enters the tree                  |
-| `onUnmount`          | Event name fired when component leaves the tree                  |
-| `accessibilityLabel` | Reserved for v2 accessibility support                            |
-| `accessibilityRole`  | Reserved for v2 accessibility support                            |
+| Prop                 | Purpose                                                                                                                                                |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `id`                 | Globally unique identifier. **Required for stateful components.** Used for StateStore bindings, EventBus targeting, and hot-reload state preservation. |
+| `key`                | Sibling-scoped identifier for FlatList item recycling. Required for correct state preservation across data reorders.                                   |
+| `visible`            | Boolean; hides component but preserves layout space. Does **not** unmount the component.                                                               |
+| `opacity`            | 0.0–1.0 float; applied to entire subtree                                                                                                               |
+| `testID`             | String identifier for automated UI testing                                                                                                             |
+| `onMount`            | Event name fired when component first appears in the tree                                                                                              |
+| `onUnmount`          | Event name fired when component is removed (or recycled out of FlatList window)                                                                        |
+| `accessibilityLabel` | Reserved for v2 accessibility support                                                                                                                  |
+| `accessibilityRole`  | Reserved for v2 accessibility support                                                                                                                  |
 
 ---
 
 ## 13. Image Loading Pipeline
 
-| Attribute          | Detail                                                           |
-| ------------------ | ---------------------------------------------------------------- |
-| **Formats**        | PNG, JPEG, WebP via the `image` Rust crate                       |
-| **Decoding**       | Async, decoded on a background thread pool                       |
-| **GPU upload**     | Main thread only, uploaded to SDL_GPU texture on decode complete |
-| **Cache**          | LRU texture cache keyed by `src` string; configurable max size   |
-| **Placeholder**    | Shows `Spinner` while loading; `EmptyState` on error             |
-| **Network images** | `src` starting with `https://` triggers async HTTP fetch (v1.1)  |
-| **Eviction**       | `SDL_EVENT_LOW_MEMORY` triggers full cache eviction              |
+| Attribute            | Detail                                                                  |
+| -------------------- | ----------------------------------------------------------------------- |
+| **Formats**          | PNG, JPEG, WebP via the `image` Rust crate                              |
+| **Decoding**         | Async, decoded on a background thread pool                              |
+| **Main thread sync** | Decode completion signalled via channel; GPU upload on main thread only |
+| **Cache**            | LRU texture cache keyed by `src` string; configurable max size          |
+| **Placeholder**      | Shows `Spinner` while loading; `EmptyState` on error                    |
+| **Network images**   | `src` starting with `https://` triggers async HTTP fetch (v1.1)         |
+| **Eviction**         | `SDL_EVENT_LOW_MEMORY` triggers full cache eviction                     |
+| **Asset path**       | Relative paths resolved from `assets/images/` via `AssetLoader`         |
 
 ---
 
 ## 14. Error Handling and Fault Isolation
 
-Every component's `build()` call is wrapped in a Rust `catch_unwind` boundary. If a component panics, the error is caught, logged, and a `DebugBox` is rendered in its place. The rest of the UI continues rendering normally.
+### 14.1 Panic Isolation
 
-Invalid prop values are handled by `PropUtils` which always returns a typed default, no component ever receives an unhandled `None` for a required prop.
+Panic isolation is **dev builds only** (`#[cfg(debug_assertions)]`). In release builds, components are trusted to be panic-safe for performance.
 
-Parse errors in hot-reload mode are shown as a full-screen red overlay with the file name, line number, and error message. The previous valid UI remains cached and displayed until the XML is fixed.
+In dev builds, `UIContext` state is snapshotted before each `build()` call (`CommandBuffer.len`, `ClipStack` depth, `FocusSystem` state) and restored on panic. A `DebugBox` is rendered using the **intended layout bounds**. The rest of the UI continues rendering normally. Panics are forwarded to a registered global error handler for crash analytics integration.
+
+### 14.2 Dev Error Overlay UX
+
+| Error Type                    | Behaviour                                                                   |
+| ----------------------------- | --------------------------------------------------------------------------- |
+| Runtime panic in a component  | Inline `DebugBox` at intended layout bounds                                 |
+| XML parse error in hot-reload | Full-screen red overlay showing **all** errors across all reloaded files    |
+| Overlay interaction           | Dismissible by tap, previous valid UI visible behind it                     |
+| Opt-out                       | Apps can register a custom crash UI in dev and suppress the default overlay |
+
+### 14.3 Invalid Props
+
+`PropUtils` always returns a typed default, no component ever receives an unhandled `None` for a required prop.
 
 ---
 
 ## 15. Build System and Integration
 
-### 15.1 Cargo Structure
+### 15.1 Cargo.toml
 
 ```toml
 [package]
@@ -793,15 +822,15 @@ default = []
 dev     = ["hot-reload"]
 
 [dependencies]
-sdl3       = "0.1"
-taffy      = "0.4"
-fontdue    = "0.8"
-rustybuzz  = "0.14"
-roxmltree  = "0.20"
-image      = "0.25"
-glam       = "0.28"
-serde      = { version = "1", features = ["derive"] }
-hashbrown  = "0.14"
+sdl3      = "0.1"
+taffy     = "0.4"
+fontdue   = "0.8"
+rustybuzz = "0.14"
+roxmltree = "0.20"
+image     = "0.25"
+glam      = "0.28"
+serde     = { version = "1", features = ["derive"] }
+hashbrown = "0.14"
 ```
 
 ### 15.2 Android Build
@@ -821,9 +850,20 @@ rustup target add aarch64-apple-ios
 cargo build --target aarch64-apple-ios --release
 ```
 
-### 15.4 CMake Interop
+### 15.4 C FFI (cbindgen)
 
-For integration with existing C/C++ game engine projects, a C FFI header (`safi_ui.h`) is generated via `cbindgen`:
+The C FFI surface is **small**: init, load_screen, frame, shutdown, set_state, on_event. Auto-generated via `cbindgen` at build time. Custom component registration is Rust-only. No C++ wrapper layer, raw C header only.
+
+```c
+safi_ui_init(config);
+safi_ui_load_screen("home-screen");
+safi_ui_frame();
+safi_ui_set_state("user.name", "Safi");
+safi_ui_on_event(event);
+safi_ui_shutdown();
+```
+
+### 15.5 CMake Interop
 
 ```cmake
 add_library(safi_ui STATIC IMPORTED)
@@ -843,8 +883,8 @@ safi-ui/
 ├── Cargo.toml
 ├── README.md
 ├── LICENSE
-├── build.rs                       ← shader compilation (glslc → SPIR-V + MSL)
-├── cbindgen.toml                  ← C FFI header generation
+├── build.rs                          ← shader compilation (glslc → SPIR-V + MSL)
+├── cbindgen.toml                     ← C FFI header generation (small surface)
 ├── shaders/
 │   ├── rect.glsl
 │   ├── border.glsl
@@ -854,36 +894,37 @@ safi-ui/
 ├── src/
 │   ├── lib.rs
 │   ├── core/
-│   │   ├── vnode.rs
+│   │   ├── vnode.rs                  ← id + key fields
 │   │   ├── xml_parser.rs
 │   │   ├── component_registry.rs
-│   │   ├── layout_engine.rs       ← Taffy integration
+│   │   ├── layout_engine.rs          ← Taffy integration
 │   │   ├── ui_context.rs
 │   │   ├── widget_arena.rs
-│   │   ├── command_buffer.rs
-│   │   ├── dirty_tracker.rs
-│   │   ├── event_bus.rs
-│   │   ├── state_store.rs
-│   │   ├── prop_utils.rs
+│   │   ├── command_buffer.rs         ← growable, configurable cap, 75% warning
+│   │   ├── dirty_tracker.rs          ← per-subtree WidgetId-keyed + state subscriptions
+│   │   ├── event_bus.rs              ← main-thread emit; post_async for cross-thread
+│   │   ├── state_store.rs            ← per-widget subscriptions; main-thread only
+│   │   ├── prop_utils.rs             ← binding resolution, composite bindings
 │   │   ├── gesture_recognizer.rs
-│   │   └── hot_reload.rs          ← cfg(feature = "dev") only
+│   │   ├── asset_loader.rs           ← unified AAssetManager + Bundle.main
+│   │   └── hot_reload.rs             ← cfg(feature = "dev") only
 │   ├── components/
 │   │   ├── layout/
 │   │   ├── typography/
 │   │   ├── input/
 │   │   ├── display/
 │   │   ├── navigation/
-│   │   └── data/
+│   │   └── data/                     ← FlatList with windowed recycling
 │   ├── renderer/
-│   │   ├── gpu_renderer.rs        ← SDL_GPU command submission + batching
-│   │   ├── font_atlas.rs          ← fontdue + rustybuzz atlas builder
-│   │   └── image_cache.rs         ← async load + LRU GPU texture cache
+│   │   ├── gpu_renderer.rs           ← partial cmd buffer rebuild; per-subtree dirty
+│   │   ├── font_atlas.rs             ← fontdue + rustybuzz atlas builder
+│   │   └── image_cache.rs            ← channel-based decode signalling + LRU cache
 │   └── platform/
-│       ├── android.rs             ← JNI bridge: safe area, keyboard height
-│       └── ios.rs                 ← ObjC bridge: safe area, keyboard height
+│       ├── android.rs                ← JNI bridge + AAssetManager
+│       └── ios.rs                    ← ObjC bridge + Bundle.main
 ├── examples/
-│   ├── android-hello/
-│   ├── ios-hello/
+│   ├── android-hello/                ← Phase 1 acceptance demo
+│   ├── ios-hello/                    ← Phase 1 acceptance demo
 │   └── todo-app/
 ├── assets/
 │   └── ui/
@@ -902,45 +943,67 @@ safi-ui/
 
 ## 17. Development Roadmap
 
-| Phase   | Milestone          | Target     | Deliverables                                                                                                            |
-| ------- | ------------------ | ---------- | ----------------------------------------------------------------------------------------------------------------------- |
-| Phase 0 | Foundations        | Week 1–2   | Repo, Cargo setup, SDL3 window on Android + iOS, Vulkan/Metal surface confirmed, GitHub Actions CI                      |
-| Phase 1 | Core Engine        | Week 3–6   | CommandBuffer, DirtyTracker, UIContext, WidgetArena, GestureRecognizer, SDL_GPU rect + text rendering on both platforms |
-| Phase 2 | Layout + Parse     | Week 7–9   | Taffy integration, roxmltree XML parser, VNode tree, dp unit system, DPI scaling                                        |
-| Phase 3 | Component Registry | Week 10–12 | ComponentRegistry, PropUtils, Component trait, View + Text + Button rendering correctly                                 |
-| Phase 4 | Component Library  | Week 13–18 | All built-in components from Section 10, font atlas (fontdue + rustybuzz), image pipeline                               |
-| Phase 5 | State + Events     | Week 19–21 | StateStore, EventBus, FlatList data binding, XML template components, `register_component!` macro                       |
-| Phase 6 | Platform Polish    | Week 22–24 | Safe area, keyboard layout shift, lifecycle events, hot-reload dev feature, error overlay                               |
-| Phase 7 | OSS Launch         | Week 25–26 | Docs, component reference, contribution guide, GitHub release, MIT license, 3 example apps                              |
+| Phase       | Milestone          | Target   | Deliverables                                                                                                                                                                                                                       |
+| ----------- | ------------------ | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Phase 0** | Foundations        | Wk 1–2   | Repo, Cargo setup, `vnode!` macro DSL, SDL3 window on Android + iOS, Vulkan/Metal surface confirmed, GitHub Actions CI                                                                                                             |
+| **Phase 1** | Core Engine        | Wk 3–6   | `CommandBuffer` (growable), per-subtree `DirtyTracker`, `UIContext`, `WidgetArena`, `GestureRecognizer`, SDL_GPU rect + text on both platforms. **Acceptance demo:** hand-built button that flips colour on tap on both platforms. |
+| **Phase 2** | Layout + Parse     | Wk 7–9   | Taffy integration, roxmltree XML parser, `VNode` tree (`id` + `key` fields), dp unit system, DPI scaling, `AssetLoader` abstraction                                                                                                |
+| **Phase 3** | Component Registry | Wk 10–12 | `ComponentRegistry`, `PropUtils` (binding resolution, composite bindings), `Component` trait (`on_layout` hook), `View` + `Text` + `Button` rendering correctly                                                                    |
+| **Phase 4** | Component Library  | Wk 13–18 | All built-in components from §10, font atlas (fontdue + rustybuzz), image pipeline (channel-based signalling), icon system decision                                                                                                |
+| **Phase 5** | State + Events     | Wk 19–21 | `StateStore` (per-widget subscriptions), `EventBus` (main-thread + `post_async`), `FlatList` windowed recycling + reverse-infinite-scroll, XML template components, `register_component!` macro                                    |
+| **Phase 6** | Platform Polish    | Wk 22–24 | Safe area, keyboard layout shift, lifecycle events, hot-reload with seamless state preservation (stable `id` mapping), dev error overlay (dismissible, opt-out), panic isolation + crash handler                                   |
+| **Phase 7** | OSS Launch         | Wk 25–26 | Docs, component reference, contribution guide, GitHub release, MIT license, 3 example apps                                                                                                                                         |
 
 ---
 
 ## 18. Success Metrics
 
-| Metric                                         | Target                             |
-| ---------------------------------------------- | ---------------------------------- |
-| **Cold parse time (1 screen, ~50 nodes)**      | < 5ms on Pixel 8 / iPhone 15       |
-| **Layout compute time (50-node tree)**         | < 2ms per frame                    |
-| **Frame render time (typical screen, dirty)**  | < 4ms GPU                          |
-| **Frame CPU time (static screen, not dirty)**  | < 0.1ms (sleep loop)               |
-| **Hot-reload latency (file save → new frame)** | < 100ms                            |
-| **Binary size overhead vs bare SDL3**          | < 800KB stripped `.so` / framework |
-| **GitHub stars at 3 months post-launch**       | > 300                              |
-| **Built-in component count at v1 launch**      | >= 30                              |
-| **Example apps shipping with library**         | >= 3 (hello, todo, dashboard)      |
+### 18.1 Engineering KPIs
+
+All latency targets measured at **p99**. Binary size measured as **worst case** (arm64).
+
+| Metric                                     | Target                              |
+| ------------------------------------------ | ----------------------------------- |
+| Cold parse time (1 screen, ~50 nodes)      | < 5ms on Pixel 8 / iPhone 15        |
+| Layout compute time (50-node tree)         | < 2ms per frame                     |
+| Frame render time (typical screen, dirty)  | < 4ms GPU                           |
+| Frame CPU time (static screen, not dirty)  | < 0.1ms (sleep loop)                |
+| Hot-reload latency (file save → new frame) | < 100ms                             |
+| Binary size overhead vs bare SDL3          | < 800KB stripped (worst case arm64) |
+| Built-in component count at v1 launch      | >= 30                               |
+
+### 18.2 Adoption KPIs
+
+| Metric                                       | Target                        |
+| -------------------------------------------- | ----------------------------- |
+| GitHub stars at 3 months post-launch         | > 300                         |
+| Example apps shipping with library           | >= 3 (hello, todo, dashboard) |
+| Community PRs in first 3 months              | > 10                          |
+| Issues opened by community (adoption signal) | > 20                          |
 
 ---
 
-## 19. Open Questions and Decisions
+## 19. Resolved Design Decisions
 
-| Question                | Options                                                                       | Decision Owner                              |
-| ----------------------- | ----------------------------------------------------------------------------- | ------------------------------------------- |
-| Icon system             | Embedded font atlas (Material Icons) vs custom image atlas vs SVG via `resvg` | Safi, decide before Phase 4                 |
-| FlatList virtualization | Full re-render vs windowed recycling for large lists                          | Safi, decide before Phase 5                 |
-| Navigation stack        | Built-in `Navigator` component vs thin `NavManager` utility vs defer to v1.1  | Defer to v1.1                               |
-| C FFI surface           | Auto-generate via `cbindgen` vs hand-authored minimal API                     | cbindgen at build time                      |
-| Font bundling           | Bundle Inter + Noto Sans Arabic vs system font API bridge                     | Bundle defaults; override via `FontManager` |
-| Android minimum API     | minSdk 24 (Vulkan guaranteed) vs minSdk 21 with runtime Vulkan check          | minSdk 24                                   |
+All 15 open questions from the v2.0 review session are resolved. This section is a quick-reference summary; full details are incorporated in the relevant sections above.
+
+| #   | Topic                    | Decision                                                                                                                                                                  |
+| --- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Hot-reload state         | Seamless. State preserved via stable `id` mapping. No visible flash.                                                                                                      |
+| 2   | FlatList virtualization  | Windowed recycling from v1. 1k+ items supported. Reverse-infinite-scroll in v1 scope. `key` prop required on items.                                                       |
+| 3   | DirtyTracker granularity | Per-subtree `WidgetId`-keyed from v1. `StateStore` tracks subscriptions per key. GPU renderer tracks changed cmd-buffer ranges.                                           |
+| 4   | Panic isolation          | Dev builds only. Snapshot + restore `UIContext` on panic. `DebugBox` at intended layout bounds. Global crash handler hook.                                                |
+| 5   | Global singletons        | Multi-window out of scope for v1. Tests use `StateStore::new()` for isolation. `UIInstance` / `App` owns state. `::global()` is a convenience.                            |
+| 6   | CommandBuffer overflow   | Grow + warn (never drop or panic). Configurable initial cap at `App::init()`. Debug warning at 75% utilisation.                                                           |
+| 7   | Roadmap Phase ordering   | Phase 1 uses programmatic `VNode` trees. `vnode!` macro added in Phase 0. Acceptance demo: tap-to-flip button on both platforms.                                          |
+| 8   | Success metrics          | Split into Engineering KPIs (p99 latency, binary size worst-case) and Adoption KPIs (stars, PRs, issues).                                                                 |
+| 9   | VNode identity / keying  | `id` required for stateful components (globally unique). Separate `key` prop for FlatList siblings (sibling-scoped). `key` required for correct recycle state on reorder. |
+| 10  | Threading model          | `build()` main-thread only. `StateStore` / `EventBus` main-thread only. `post_async` for cross-thread. Image decode signals via channel.                                  |
+| 11  | Prop binding edge cases  | Missing key → empty string. Bindings in any prop. Composite bindings supported. Dynamic event bindings (`onPress="{{action}}"`) supported.                                |
+| 12  | Component lifecycle      | `on_mount` on first appearance. `visible="false"` skips `build()` only (no unmount). FlatList recycle fires `on_unmount` / `on_mount`. `on_layout` hook added.            |
+| 13  | Dev error overlay UX     | Runtime panic → inline `DebugBox`. Parse errors → dismissible full-screen overlay showing all errors. Opt-out for custom crash UI.                                        |
+| 14  | C FFI surface            | Small surface only: init / load / frame / shutdown / set_state / on_event. Component registration Rust-only. Raw C header via `cbindgen`.                                 |
+| 15  | Asset bundling           | Android: `AAssetManager`. iOS: `Bundle.main`. Unified `AssetLoader` in Rust. Images from `assets/images/`. Hot-reload uses bundled assets.                                |
 
 ---
 
@@ -955,10 +1018,10 @@ safi-ui/
 | `roxmltree`     | 0.20+   | MIT        | Pure Rust XML parsing                                    |
 | `image`         | 0.25+   | MIT        | Pure Rust image decoding (PNG, JPEG, WebP)               |
 | `glam`          | 0.28+   | MIT        | SIMD math primitives (Vec2, Rect, Mat4)                  |
-| `serde`         | 1.0+    | MIT        | Serialization (StateStore persistence v2)                |
+| `serde`         | 1.0+    | MIT        | Serialisation (StateStore persistence v2)                |
 | `cargo-ndk`     | 3.0+    | MIT        | Android NDK Rust cross-compilation                       |
 | `cargo-mobile2` | 0.x+    | MIT/Apache | iOS Xcode project generation                             |
-| `cbindgen`      | 0.26+   | MIT        | C FFI header generation                                  |
+| `cbindgen`      | 0.26+   | MIT        | C FFI header generation (small surface)                  |
 | `glslc`         | SDK     | Apache 2.0 | GLSL → SPIR-V / MSL shader compilation (build-time only) |
 | Android NDK     | r25+    | Apache 2.0 | Android native build toolchain                           |
 | iOS SDK / Metal | iOS 16+ | Apple EULA | iOS platform GPU API (used via SDL_GPU)                  |
@@ -974,7 +1037,7 @@ safi-ui/
           titleColor="#fff"
           rightAction="nav.settings" />
 
-  <ScrollView flex="1" padding="16">
+  <ScrollView id="main-scroll" flex="1" padding="16">
 
     <!-- User profile card (user-defined XML component) -->
     <UserCard name="{{user.name}}"
@@ -998,10 +1061,11 @@ safi-ui/
 
     <Spacer size="16" />
 
-    <!-- Recent projects list -->
+    <!-- Recent projects list, virtualized, key required on items -->
     <Text size="18" weight="bold" color="#fff">Recent Projects</Text>
     <Spacer size="8" />
-    <FlatList data="projects.recent"
+    <FlatList id="projects-list"
+              data="projects.recent"
               renderItem="ProjectCard"
               keyExtractor="id"
               separator="8" />
@@ -1023,5 +1087,4 @@ safi-ui/
 
 ---
 
-_Safi-UI · PRD v2.0 · Safi Studio · May 2026_
-_Second Version Draft, May 2026_
+_Safi-UI · PRD v2.1 · Safi Studio · May 2026 · Confidential Draft_
