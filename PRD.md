@@ -1,20 +1,22 @@
 # Safi-UI, Product Requirements Document
 
-**v2.1 | Safi Studio**
+**v2.2 | Safi Studio**
 
-> **v2.1 change note:** All 15 open questions from the v2.0 review session are resolved and incorporated throughout this document. Section 19 provides a quick-reference summary of every decision.
+> **v2.2 change note:** Spec ambiguities flagged in the v2.1 verification pass are resolved: lifecycle rules clarified (§6.8), `Component` no longer requires `Send + Sync`, release-mode panic behaviour pinned down (§14.1), `vnode!` macro specified (§6.15), `on_layout` change-detection rule added, dirty-cascade rule added (§5.3), composite-binding subscription semantics added (§6.12), background-thread state-update pattern documented, EventBus thread-safety wording tightened, frame-loop snippet made compileable.
+>
+> v2.1 resolved all 15 open questions from the v2.0 review. Section 18 still summarises every decision.
 
 ---
 
-| Field        | Value                       |
-| ------------ | --------------------------- |
-| **Version**  | 2.1, Decisions Incorporated |
-| **Status**   | In Review                   |
-| **Date**     | May 2026                    |
-| **Author**   | Abdul Kader Safi            |
-| **Project**  | Safi Studio, Open Source    |
-| **Language** | Rust (2021 Edition)         |
-| **License**  | MIT (proposed)              |
+| Field        | Value                     |
+| ------------ | ------------------------- |
+| **Version**  | 2.2, Verification Applied |
+| **Status**   | In Review                 |
+| **Date**     | May 2026                  |
+| **Author**   | Abdul Kader Safi          |
+| **Project**  | Safi Studio, Open Source  |
+| **Language** | Rust (2021 Edition)       |
+| **License**  | MIT (proposed)            |
 
 ---
 
@@ -150,6 +152,8 @@ Background threads
   └─► Image decode (thread pool)
         └─► channel → main thread → SDL_GPU upload → mark_dirty
 ```
+
+**Dirty cascade rule.** `DirtyTracker::mark_dirty(widget_id)` flags a single widget. The `DirtyTracker` automatically walks the parent chain in `WidgetArena` and also flags any ancestor whose layout sizing depends on the marked widget (e.g., an `auto`-sized parent of a `Text` whose content changed). Ancestors with fully resolved bounds (fixed `width` + `height`, or `flex` constrained by a sized parent) are not cascaded.
 
 ### 5.4 Component Resolution Order
 
@@ -306,10 +310,10 @@ Supports both built-in registration (at library init) and user registration (at 
 
 ### 6.8 Component Trait
 
-Every widget implements `Component`. `build()` is strictly **main-thread**. `Component` is `Send + Sync` to support registration from any thread, even though `build()` always runs on the main thread.
+Every widget implements `Component`. `build()` is strictly **main-thread**. The `Component` trait itself has **no `Send + Sync` bound**, only the factory closures stored in `ComponentRegistry` (which may be invoked from any thread during registration) require `Send + Sync`. This lets custom components hold `Rc<…>`, `RefCell<…>`, or other non-`Send` handles without ceremony, since instances only ever live on the main thread.
 
 ```rust
-pub trait Component: Send + Sync {
+pub trait Component {
     // Emit draw commands for this widget's current state
     fn build(&self, ctx: &mut UIContext, bounds: LayoutRect);
 
@@ -320,9 +324,9 @@ pub trait Component: Send + Sync {
     fn on_gesture(&mut self, gesture: Gesture) -> bool { false }
 
     // Lifecycle hooks
-    fn on_mount(&mut self, _ctx: &mut UIContext)    {}  // fires on first appearance in any frame
-    fn on_unmount(&mut self, _ctx: &mut UIContext)  {}  // fires on removal (incl. FlatList recycle)
-    fn on_layout(&mut self, _bounds: LayoutRect)    {}  // fires after layout computed
+    fn on_mount(&mut self, _ctx: &mut UIContext)    {}  // fires whenever entering the live tree
+    fn on_unmount(&mut self, _ctx: &mut UIContext)  {}  // fires whenever leaving the live tree
+    fn on_layout(&mut self, _bounds: LayoutRect)    {}  // fires only when bounds change
 
     fn bounds(&self) -> LayoutRect;
 }
@@ -330,10 +334,10 @@ pub trait Component: Send + Sync {
 
 **Lifecycle semantics:**
 
-- `on_mount` fires the **first time** a component appears in any frame
-- `visible="false"` skips `build()` only, does **not** fire `on_unmount`; the instance remains alive
-- Virtualised FlatList items fire `on_unmount` when scrolled out of the recycle window and `on_mount` when recycled back in
-- `on_layout` fires after Taffy has computed final bounds, use this to position tooltips or measure-dependent children
+- `on_mount` fires **whenever a component enters the live tree**: first appearance, post-hot-reload remount of an unmatched node, or recycle-back-into-window for a virtualised FlatList item
+- `on_unmount` fires whenever a component leaves the live tree, including FlatList recycle-out
+- `visible="false"` skips `build()` only, does **not** fire `on_unmount`; the instance remains alive and its state is preserved
+- `on_layout` fires **only when bounds change** (delta vs the last laid-out frame). It does not fire every frame on static layouts. Use this to position tooltips or measure-dependent children without thrashing.
 
 ### 6.9 GestureRecognizer
 
@@ -372,7 +376,7 @@ Hot-reload is **seamless**. All component state is preserved across re-parses. S
 
 ### 6.11 EventBus
 
-A thread-safe publish/subscribe bus for named events. `emit()` and handler registration are **main-thread-only**. `post_async()` is the safe cross-thread path, queuing the event for dispatch on the next frame.
+A main-thread publish/subscribe bus for named events with a cross-thread `post_async` ingress. `emit()` and handler registration are **main-thread-only**. `post_async()` is the only API callable from background threads; it enqueues the event onto a thread-safe queue that the main loop drains on the next frame.
 
 ```rust
 // Register a handler (main thread)
@@ -415,8 +419,25 @@ StateStore::global().subscribe("user.name", |value| {
 - Missing key resolves to **empty string** (never an error)
 - Bindings are allowed in **any prop**, including `width`, `src`, `onPress`
 - Composite bindings are supported: `"Hello {{name}}!"`, `"{{first}} {{last}}"`
+- Composite bindings register a `DirtyTracker` subscription on **every** key referenced in the template, so any one of them changing invalidates the owning subtree
 - Dynamic event bindings are supported: `onPress="{{dynamicAction}}"`
 - Type coercion: bound values are strings; `PropUtils::parse_*` coerces as normal
+
+**Background-thread state updates.** Network fetches, file IO, and other background work cannot call `StateStore::set` directly. The recommended pattern is to post a marker event from the worker thread and apply the state mutation in its main-thread handler:
+
+```rust
+// On a background thread (e.g. an HTTP client task):
+let json = http::get("/api/projects").await?;
+PENDING_PROJECTS.lock().unwrap().replace(json);
+EventBus::global().post_async("projects.fetched");
+
+// Registered once on the main thread at startup:
+EventBus::global().on("projects.fetched", || {
+    if let Some(json) = PENDING_PROJECTS.lock().unwrap().take() {
+        StateStore::global().set("projects.recent", json);
+    }
+});
+```
 
 The store is not persisted to disk in v1.
 
@@ -438,6 +459,32 @@ let width   = props.parse_dim("width", Dimension::Auto);
 // Resolves {{key}} bindings (missing key → "")
 let text = props.resolve_binding("label", state_store);
 ```
+
+### 6.15 `vnode!` Macro (Programmatic Authoring)
+
+A declarative macro that builds a `VNode` tree directly in Rust, used by Phase 1 work (before the XML parser exists), by tests, and by anyone embedding Safi-UI without an `assets/ui/` directory. Syntactically it mirrors XML.
+
+```rust
+let tree: VNode = vnode! {
+    <Screen bg="#0f0f1a" safeArea="true">
+        <Column gap="12" padding="16">
+            <Heading level="2" color="#fff">"Hello"</Heading>
+            <Button id="cta" label="Tap me" onPress="demo.tap" />
+        </Column>
+    </Screen>
+};
+```
+
+| Attribute          | Detail                                                                                                          |
+| ------------------ | --------------------------------------------------------------------------------------------------------------- |
+| **Output type**    | `VNode` (same struct produced by `XmlParser::parse`)                                                            |
+| **Prop values**    | String literals only (matches the runtime model where all props are `String`)                                   |
+| **Text content**   | A bare string literal becomes `VNode::text_content`                                                             |
+| **Bindings**       | Written verbatim: `value="{{user.name}}"`                                                                       |
+| **Compile errors** | Unknown tags compile fine (resolved at runtime via `ComponentRegistry`); malformed syntax fails at compile time |
+| **Hot-reload**     | Trees produced by `vnode!` are not hot-reloadable (no source file to watch)                                     |
+
+The macro lives in a `safi-ui-macros` proc-macro crate and is re-exported from `safi-ui`. It is the only sanctioned way to construct `VNode` trees by hand — direct struct construction is technically possible but bypasses validation.
 
 ---
 
@@ -500,11 +547,21 @@ The `GpuRenderer` iterates the `CommandBuffer` after each build phase and batche
 - `StateStore::set()` and `EventBus::emit()` are **main-thread-only**
 - `EventBus::post_async()` is the safe cross-thread posting path
 - Background image decode signals the main thread via a **channel**; the main thread uploads to SDL_GPU and marks dirty
-- `Component` is `Send + Sync` to allow registration from any thread, not because `build()` runs off-thread
+- `Component` itself has no `Send + Sync` bound; only the registry's factory closures do (so registration can happen from any thread, while instances stay main-thread-only)
 
 ### 8.5 Frame Loop
 
+The decoded-image channel carries `DecodedImage { owner_id: WidgetId, src: String, pixels: image::RgbaImage }`. The main thread drains it once per frame, uploads each payload to a GPU texture, inserts it into the LRU cache, and marks the requesting widget dirty.
+
 ```rust
+struct DecodedImage {
+    owner_id: WidgetId,         // widget that requested the image
+    src:      String,            // cache key
+    pixels:   image::RgbaImage,  // decoded pixels, ready for upload
+}
+
+let image_channel: crossbeam::channel::Receiver<DecodedImage> = /* … */;
+
 loop {
     for event in sdl.event_pump() {
         match event {
@@ -519,10 +576,14 @@ loop {
         }
     }
 
-    // Process decode completions from background thread pool
+    // Drain async-posted EventBus messages from background threads
+    event_bus.drain_async();
+
+    // Process decode completions from the background thread pool
     while let Ok(decoded) = image_channel.try_recv() {
-        gpu.upload_texture(decoded);
-        dirty.mark_dirty(decoded.owner_id);
+        let texture = gpu.upload_texture(&decoded.pixels);
+        image_cache.insert(decoded.src, texture);
+        ctx.dirty.mark_dirty(decoded.owner_id);
     }
 
     gesture_recognizer.flush(&mut arena, &mut event_bus);
@@ -788,9 +849,14 @@ Usage: `<Chart data="{{analytics.weekly}}" color="#4F8EF7" height="200" />`
 
 ### 14.1 Panic Isolation
 
-Panic isolation is **dev builds only** (`#[cfg(debug_assertions)]`). In release builds, components are trusted to be panic-safe for performance.
+Panic isolation is **dev builds only** (`#[cfg(debug_assertions)]`). In dev builds, `UIContext` state is snapshotted before each `build()` call (`CommandBuffer.len`, `ClipStack` depth, `FocusSystem` state) and restored on panic. A `DebugBox` is rendered using the **intended layout bounds**. The rest of the UI continues rendering normally. Panics are forwarded to a registered global error handler for crash analytics integration.
 
-In dev builds, `UIContext` state is snapshotted before each `build()` call (`CommandBuffer.len`, `ClipStack` depth, `FocusSystem` state) and restored on panic. A `DebugBox` is rendered using the **intended layout bounds**. The rest of the UI continues rendering normally. Panics are forwarded to a registered global error handler for crash analytics integration.
+**Release-build behaviour.** Release builds do **not** wrap `build()` in `catch_unwind`. A panic inside `Component::build` unwinds into the Safi-UI frame loop and the process aborts (matching the standard Rust `panic = "abort"` profile recommended for mobile binary-size reasons). Components are expected to be panic-safe in release. The global crash handler registered via the dev hook is **also invoked in release** before abort, so apps can flush crash analytics — but it cannot resume rendering.
+
+| Build profile | `build()` panic outcome                                         |
+| ------------- | --------------------------------------------------------------- |
+| Dev           | Snapshot + restore `UIContext`; render `DebugBox`; UI continues |
+| Release       | Crash handler fires (analytics flush), then process aborts      |
 
 ### 14.2 Dev Error Overlay UX
 
@@ -876,89 +942,24 @@ target_link_libraries(my_game PRIVATE safi_ui)
 
 ---
 
-## 16. Repository Structure
+## 16. Development Roadmap
 
-```
-safi-ui/
-├── Cargo.toml
-├── README.md
-├── LICENSE
-├── build.rs                          ← shader compilation (glslc → SPIR-V + MSL)
-├── cbindgen.toml                     ← C FFI header generation (small surface)
-├── shaders/
-│   ├── rect.glsl
-│   ├── border.glsl
-│   ├── text.glsl
-│   ├── image.glsl
-│   └── shadow.glsl
-├── src/
-│   ├── lib.rs
-│   ├── core/
-│   │   ├── vnode.rs                  ← id + key fields
-│   │   ├── xml_parser.rs
-│   │   ├── component_registry.rs
-│   │   ├── layout_engine.rs          ← Taffy integration
-│   │   ├── ui_context.rs
-│   │   ├── widget_arena.rs
-│   │   ├── command_buffer.rs         ← growable, configurable cap, 75% warning
-│   │   ├── dirty_tracker.rs          ← per-subtree WidgetId-keyed + state subscriptions
-│   │   ├── event_bus.rs              ← main-thread emit; post_async for cross-thread
-│   │   ├── state_store.rs            ← per-widget subscriptions; main-thread only
-│   │   ├── prop_utils.rs             ← binding resolution, composite bindings
-│   │   ├── gesture_recognizer.rs
-│   │   ├── asset_loader.rs           ← unified AAssetManager + Bundle.main
-│   │   └── hot_reload.rs             ← cfg(feature = "dev") only
-│   ├── components/
-│   │   ├── layout/
-│   │   ├── typography/
-│   │   ├── input/
-│   │   ├── display/
-│   │   ├── navigation/
-│   │   └── data/                     ← FlatList with windowed recycling
-│   ├── renderer/
-│   │   ├── gpu_renderer.rs           ← partial cmd buffer rebuild; per-subtree dirty
-│   │   ├── font_atlas.rs             ← fontdue + rustybuzz atlas builder
-│   │   └── image_cache.rs            ← channel-based decode signalling + LRU cache
-│   └── platform/
-│       ├── android.rs                ← JNI bridge + AAssetManager
-│       └── ios.rs                    ← ObjC bridge + Bundle.main
-├── examples/
-│   ├── android-hello/                ← Phase 1 acceptance demo
-│   ├── ios-hello/                    ← Phase 1 acceptance demo
-│   └── todo-app/
-├── assets/
-│   └── ui/
-│       ├── screens/
-│       └── components/
-├── docs/
-│   ├── getting-started.md
-│   ├── component-reference.md
-│   └── custom-components.md
-└── tests/
-    ├── core/
-    └── components/
-```
+| Phase       | Milestone          | Deliverables                                                                                                                                                                                                                       |
+| ----------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Phase 0** | Foundations        | Repo, Cargo setup, `vnode!` macro DSL, SDL3 window on Android + iOS, Vulkan/Metal surface confirmed, GitHub Actions CI                                                                                                             |
+| **Phase 1** | Core Engine        | `CommandBuffer` (growable), per-subtree `DirtyTracker`, `UIContext`, `WidgetArena`, `GestureRecognizer`, SDL_GPU rect + text on both platforms. **Acceptance demo:** hand-built button that flips colour on tap on both platforms. |
+| **Phase 2** | Layout + Parse     | Taffy integration, roxmltree XML parser, `VNode` tree (`id` + `key` fields), dp unit system, DPI scaling, `AssetLoader` abstraction                                                                                                |
+| **Phase 3** | Component Registry | `ComponentRegistry`, `PropUtils` (binding resolution, composite bindings), `Component` trait (`on_layout` hook), `View` + `Text` + `Button` rendering correctly                                                                    |
+| **Phase 4** | Component Library  | All built-in components from §10, font atlas (fontdue + rustybuzz), image pipeline (channel-based signalling), icon system decision                                                                                                |
+| **Phase 5** | State + Events     | `StateStore` (per-widget subscriptions), `EventBus` (main-thread + `post_async`), `FlatList` windowed recycling + reverse-infinite-scroll, XML template components, `register_component!` macro                                    |
+| **Phase 6** | Platform Polish    | Safe area, keyboard layout shift, lifecycle events, hot-reload with seamless state preservation (stable `id` mapping), dev error overlay (dismissible, opt-out), panic isolation + crash handler                                   |
+| **Phase 7** | OSS Launch         | Docs, component reference, contribution guide, GitHub release, MIT license, 3 example apps                                                                                                                                         |
 
 ---
 
-## 17. Development Roadmap
+## 17. Success Metrics
 
-| Phase       | Milestone          | Target   | Deliverables                                                                                                                                                                                                                       |
-| ----------- | ------------------ | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Phase 0** | Foundations        | Wk 1–2   | Repo, Cargo setup, `vnode!` macro DSL, SDL3 window on Android + iOS, Vulkan/Metal surface confirmed, GitHub Actions CI                                                                                                             |
-| **Phase 1** | Core Engine        | Wk 3–6   | `CommandBuffer` (growable), per-subtree `DirtyTracker`, `UIContext`, `WidgetArena`, `GestureRecognizer`, SDL_GPU rect + text on both platforms. **Acceptance demo:** hand-built button that flips colour on tap on both platforms. |
-| **Phase 2** | Layout + Parse     | Wk 7–9   | Taffy integration, roxmltree XML parser, `VNode` tree (`id` + `key` fields), dp unit system, DPI scaling, `AssetLoader` abstraction                                                                                                |
-| **Phase 3** | Component Registry | Wk 10–12 | `ComponentRegistry`, `PropUtils` (binding resolution, composite bindings), `Component` trait (`on_layout` hook), `View` + `Text` + `Button` rendering correctly                                                                    |
-| **Phase 4** | Component Library  | Wk 13–18 | All built-in components from §10, font atlas (fontdue + rustybuzz), image pipeline (channel-based signalling), icon system decision                                                                                                |
-| **Phase 5** | State + Events     | Wk 19–21 | `StateStore` (per-widget subscriptions), `EventBus` (main-thread + `post_async`), `FlatList` windowed recycling + reverse-infinite-scroll, XML template components, `register_component!` macro                                    |
-| **Phase 6** | Platform Polish    | Wk 22–24 | Safe area, keyboard layout shift, lifecycle events, hot-reload with seamless state preservation (stable `id` mapping), dev error overlay (dismissible, opt-out), panic isolation + crash handler                                   |
-| **Phase 7** | OSS Launch         | Wk 25–26 | Docs, component reference, contribution guide, GitHub release, MIT license, 3 example apps                                                                                                                                         |
-
----
-
-## 18. Success Metrics
-
-### 18.1 Engineering KPIs
+### 17.1 Engineering KPIs
 
 All latency targets measured at **p99**. Binary size measured as **worst case** (arm64).
 
@@ -972,7 +973,7 @@ All latency targets measured at **p99**. Binary size measured as **worst case** 
 | Binary size overhead vs bare SDL3          | < 800KB stripped (worst case arm64) |
 | Built-in component count at v1 launch      | >= 30                               |
 
-### 18.2 Adoption KPIs
+### 17.2 Adoption KPIs
 
 | Metric                                       | Target                        |
 | -------------------------------------------- | ----------------------------- |
@@ -983,31 +984,31 @@ All latency targets measured at **p99**. Binary size measured as **worst case** 
 
 ---
 
-## 19. Resolved Design Decisions
+## 18. Resolved Design Decisions
 
 All 15 open questions from the v2.0 review session are resolved. This section is a quick-reference summary; full details are incorporated in the relevant sections above.
 
-| #   | Topic                    | Decision                                                                                                                                                                  |
-| --- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | Hot-reload state         | Seamless. State preserved via stable `id` mapping. No visible flash.                                                                                                      |
-| 2   | FlatList virtualization  | Windowed recycling from v1. 1k+ items supported. Reverse-infinite-scroll in v1 scope. `key` prop required on items.                                                       |
-| 3   | DirtyTracker granularity | Per-subtree `WidgetId`-keyed from v1. `StateStore` tracks subscriptions per key. GPU renderer tracks changed cmd-buffer ranges.                                           |
-| 4   | Panic isolation          | Dev builds only. Snapshot + restore `UIContext` on panic. `DebugBox` at intended layout bounds. Global crash handler hook.                                                |
-| 5   | Global singletons        | Multi-window out of scope for v1. Tests use `StateStore::new()` for isolation. `UIInstance` / `App` owns state. `::global()` is a convenience.                            |
-| 6   | CommandBuffer overflow   | Grow + warn (never drop or panic). Configurable initial cap at `App::init()`. Debug warning at 75% utilisation.                                                           |
-| 7   | Roadmap Phase ordering   | Phase 1 uses programmatic `VNode` trees. `vnode!` macro added in Phase 0. Acceptance demo: tap-to-flip button on both platforms.                                          |
-| 8   | Success metrics          | Split into Engineering KPIs (p99 latency, binary size worst-case) and Adoption KPIs (stars, PRs, issues).                                                                 |
-| 9   | VNode identity / keying  | `id` required for stateful components (globally unique). Separate `key` prop for FlatList siblings (sibling-scoped). `key` required for correct recycle state on reorder. |
-| 10  | Threading model          | `build()` main-thread only. `StateStore` / `EventBus` main-thread only. `post_async` for cross-thread. Image decode signals via channel.                                  |
-| 11  | Prop binding edge cases  | Missing key → empty string. Bindings in any prop. Composite bindings supported. Dynamic event bindings (`onPress="{{action}}"`) supported.                                |
-| 12  | Component lifecycle      | `on_mount` on first appearance. `visible="false"` skips `build()` only (no unmount). FlatList recycle fires `on_unmount` / `on_mount`. `on_layout` hook added.            |
-| 13  | Dev error overlay UX     | Runtime panic → inline `DebugBox`. Parse errors → dismissible full-screen overlay showing all errors. Opt-out for custom crash UI.                                        |
-| 14  | C FFI surface            | Small surface only: init / load / frame / shutdown / set_state / on_event. Component registration Rust-only. Raw C header via `cbindgen`.                                 |
-| 15  | Asset bundling           | Android: `AAssetManager`. iOS: `Bundle.main`. Unified `AssetLoader` in Rust. Images from `assets/images/`. Hot-reload uses bundled assets.                                |
+| #   | Topic                    | Decision                                                                                                                                                                                                             |
+| --- | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Hot-reload state         | Seamless. State preserved via stable `id` mapping. No visible flash.                                                                                                                                                 |
+| 2   | FlatList virtualization  | Windowed recycling from v1. 1k+ items supported. Reverse-infinite-scroll in v1 scope. `key` prop required on items.                                                                                                  |
+| 3   | DirtyTracker granularity | Per-subtree `WidgetId`-keyed from v1. `StateStore` tracks subscriptions per key. GPU renderer tracks changed cmd-buffer ranges.                                                                                      |
+| 4   | Panic isolation          | Dev builds only. Snapshot + restore `UIContext` on panic. `DebugBox` at intended layout bounds. Global crash handler hook.                                                                                           |
+| 5   | Global singletons        | Multi-window out of scope for v1. Tests use `StateStore::new()` for isolation. `UIInstance` / `App` owns state. `::global()` is a convenience.                                                                       |
+| 6   | CommandBuffer overflow   | Grow + warn (never drop or panic). Configurable initial cap at `App::init()`. Debug warning at 75% utilisation.                                                                                                      |
+| 7   | Roadmap Phase ordering   | Phase 1 uses programmatic `VNode` trees. `vnode!` macro added in Phase 0. Acceptance demo: tap-to-flip button on both platforms.                                                                                     |
+| 8   | Success metrics          | Split into Engineering KPIs (p99 latency, binary size worst-case) and Adoption KPIs (stars, PRs, issues).                                                                                                            |
+| 9   | VNode identity / keying  | `id` required for stateful components (globally unique). Separate `key` prop for FlatList siblings (sibling-scoped). `key` required for correct recycle state on reorder.                                            |
+| 10  | Threading model          | `build()` main-thread only. `StateStore` / `EventBus` main-thread only. `post_async` for cross-thread. Image decode signals via channel.                                                                             |
+| 11  | Prop binding edge cases  | Missing key → empty string. Bindings in any prop. Composite bindings supported. Dynamic event bindings (`onPress="{{action}}"`) supported.                                                                           |
+| 12  | Component lifecycle      | `on_mount` fires whenever a component enters the live tree (incl. FlatList recycle-in). `on_unmount` on every leave. `visible="false"` skips `build()` only (no unmount). `on_layout` fires only when bounds change. |
+| 13  | Dev error overlay UX     | Runtime panic → inline `DebugBox`. Parse errors → dismissible full-screen overlay showing all errors. Opt-out for custom crash UI.                                                                                   |
+| 14  | C FFI surface            | Small surface only: init / load / frame / shutdown / set_state / on_event. Component registration Rust-only. Raw C header via `cbindgen`.                                                                            |
+| 15  | Asset bundling           | Android: `AAssetManager`. iOS: `Bundle.main`. Unified `AssetLoader` in Rust. Images from `assets/images/`. Hot-reload uses bundled assets.                                                                           |
 
 ---
 
-## 20. External Dependencies
+## 19. External Dependencies
 
 | Crate / Tool    | Version | License    | Purpose                                                  |
 | --------------- | ------- | ---------- | -------------------------------------------------------- |
