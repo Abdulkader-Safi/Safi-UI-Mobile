@@ -30,10 +30,11 @@ Work sequentially unless a todo is explicitly marked parallelisable. Don't skip 
 
 ## Progress
 
-| Todo                                  | Status         |
-| ------------------------------------- | -------------- |
-| `00-repo-and-cargo-setup`             | ✅ Completed   |
-| `01-ci-pipeline`                      | ⏭ Next         |
-| `02`–`34`                             | ⏳ Not started |
+| Todo                                       | Status         |
+| ------------------------------------------ | -------------- |
+| `00-repo-and-cargo-setup`                  | ✅ Completed   |
+| `01-ci-pipeline`                           | ✅ Completed   |
+| `02-sdl3-window-on-android-and-ios`        | ⏭ Next         |
+| `03`–`34`                                  | ⏳ Not started |
 
 Each completed todo gets a `**Status:**` line near the top of its file and a row flipped above.

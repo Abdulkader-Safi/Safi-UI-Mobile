@@ -30,6 +30,22 @@ cargo fmt --check
 
 The `examples/*` workspace glob is intentionally absent until todo 31 lands the example apps — Cargo errors on an empty glob.
 
+## Continuous integration
+
+Every PR and every push to `main` runs five jobs from `.github/workflows/ci.yml`:
+
+| Job             | Runner                    | Command                                                                   |
+| --------------- | ------------------------- | ------------------------------------------------------------------------- |
+| `fmt`           | `ubuntu-latest`           | `cargo fmt --check`                                                       |
+| `clippy`        | `ubuntu-latest`           | `cargo clippy --workspace --all-targets -- -D warnings`                   |
+| `test-host`     | `ubuntu` + `macos` matrix | `cargo test --workspace --all-targets`                                    |
+| `build-android` | `ubuntu-latest`           | `cargo ndk -t arm64-v8a build` (NDK r26d, target `aarch64-linux-android`) |
+| `build-ios`     | `macos-latest`            | `cargo build --target aarch64-apple-ios`                                  |
+
+All jobs cache the cargo registry, git index, and `SafiUI/target/` via `Swatinem/rust-cache@v2`, keyed off `SafiUI/Cargo.lock`. Concurrency cancellation kills superseded PR runs.
+
+A second workflow (`.github/workflows/release.yml`) fires on `v*.*.*` tag pushes and currently runs `cargo publish --dry-run`. Flip the dry-run flag and add `CARGO_REGISTRY_TOKEN` when ready to publish to crates.io.
+
 ## Prerequisites
 
 | Tool                  | Version | Purpose                                                          |

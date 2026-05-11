@@ -1,5 +1,9 @@
 # Safi UI
 
+[![CI](https://github.com/AbdulKaderSafi/safi-ui/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/AbdulKaderSafi/safi-ui/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Rust](https://img.shields.io/badge/rust-1.95%2B-orange.svg)](SafiUI/rust-toolchain.toml)
+
 > An open-source declarative XML-driven mobile UI framework built in pure Rust.
 
 Write UI in XML. Render natively on Android and iOS. Zero managed runtime. Zero translation layers. Direct Vulkan on Android, direct Metal on iOS, both through SDL3's GPU API.

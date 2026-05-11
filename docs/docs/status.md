@@ -1,9 +1,9 @@
 # Implementation Status
 
-**Last updated:** May 2026 — todo `00` complete (Cargo workspace stood up). Source of truth: [`PRD.md`](https://github.com/AbdulKaderSafi/safi-ui/blob/main/PRD.md) v2.3.
+**Last updated:** May 2026 — todos `00` + `01` complete (workspace + CI). Source of truth: [`PRD.md`](https://github.com/AbdulKaderSafi/safi-ui/blob/main/PRD.md) v2.3.
 
 :::info Phase 0 in progress
-The Cargo workspace lives under `SafiUI/` at the repo root. `safi-ui` and `safi-ui-macros` are empty stub crates that `cargo check` / `cargo clippy -D warnings` / `cargo fmt --check` all pass cleanly. Modules will fill in across todos `01`…`32`.
+The Cargo workspace lives under `SafiUI/` at the repo root. `safi-ui` and `safi-ui-macros` are empty stub crates that `cargo check` / `cargo clippy -D warnings` / `cargo fmt --check` all pass cleanly. GitHub Actions enforces those gates plus Android (`aarch64-linux-android`) and iOS (`aarch64-apple-ios`) cross-builds on every PR. Modules will fill in across todos `02`…`32`.
 :::
 
 ## Overall
