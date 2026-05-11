@@ -27,3 +27,13 @@ Priority-ordered build plan derived from `PRD.md` v2.3. Files are numbered `NN-n
 ## How to work this list
 
 Work sequentially unless a todo is explicitly marked parallelisable. Don't skip the Phase 1 acceptance demo (tap-to-flip button on both platforms) — every later phase assumes it works.
+
+## Progress
+
+| Todo                                  | Status         |
+| ------------------------------------- | -------------- |
+| `00-repo-and-cargo-setup`             | ✅ Completed   |
+| `01-ci-pipeline`                      | ⏭ Next         |
+| `02`–`34`                             | ⏳ Not started |
+
+Each completed todo gets a `**Status:**` line near the top of its file and a row flipped above.
