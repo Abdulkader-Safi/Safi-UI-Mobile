@@ -1,24 +1,24 @@
 # Implementation Status
 
-**Last updated:** May 2026 — pre-implementation. Source of truth: [`PRD.md`](https://github.com/AbdulKaderSafi/safi-ui/blob/main/PRD.md) v2.3.
+**Last updated:** May 2026 — todo `00` complete (Cargo workspace stood up). Source of truth: [`PRD.md`](https://github.com/AbdulKaderSafi/safi-ui/blob/main/PRD.md) v2.3.
 
-:::warning Nothing is implemented yet
-The library is at the **specification stage**. This page will be updated as code lands. Until then, every feature documented elsewhere on this site is a planned design, not a shipped capability.
+:::info Phase 0 in progress
+The Cargo workspace lives under `SafiUI/` at the repo root. `safi-ui` and `safi-ui-macros` are empty stub crates that `cargo check` / `cargo clippy -D warnings` / `cargo fmt --check` all pass cleanly. Modules will fill in across todos `01`…`32`.
 :::
 
 ## Overall
 
-| Phase   | Description        | Target   | Status      |
-| ------- | ------------------ | -------- | ----------- |
-| Phase 0 | Foundations        | Wk 1–2   | Not started |
-| Phase 1 | Core Engine        | Wk 3–6   | Not started |
-| Phase 2 | Layout + Parse     | Wk 7–9   | Not started |
-| Phase 3 | Component Registry | Wk 10–12 | Not started |
-| Phase 4 | Component Library  | Wk 13–18 | Not started |
-| Phase 5 | State + Events     | Wk 19–21 | Not started |
-| Phase 6 | Platform Polish    | Wk 22–24 | Not started |
-| Phase 7 | OSS Launch         | Wk 25–26 | Not started |
-| Post-v1 | CLI (`safi`)       | v1.1     | Not started |
+| Phase   | Description        | Target   | Status                   |
+| ------- | ------------------ | -------- | ------------------------ |
+| Phase 0 | Foundations        | Wk 1–2   | In progress (todo 00 ✅) |
+| Phase 1 | Core Engine        | Wk 3–6   | Not started              |
+| Phase 2 | Layout + Parse     | Wk 7–9   | Not started              |
+| Phase 3 | Component Registry | Wk 10–12 | Not started              |
+| Phase 4 | Component Library  | Wk 13–18 | Not started              |
+| Phase 5 | State + Events     | Wk 19–21 | Not started              |
+| Phase 6 | Platform Polish    | Wk 22–24 | Not started              |
+| Phase 7 | OSS Launch         | Wk 25–26 | Not started              |
+| Post-v1 | CLI (`safi`)       | v1.1     | Not started              |
 
 ## Core systems
 

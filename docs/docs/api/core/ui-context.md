@@ -19,14 +19,14 @@ pub struct UIContext {
 
 ## Fields
 
-| Field       | Purpose                                                                |
-| ----------- | ---------------------------------------------------------------------- |
-| `commands`  | Push draw commands here                                                |
-| `dirty`     | Mark widgets dirty / read subscriptions                                |
-| `focus`     | Claim or release keyboard focus                                        |
+| Field       | Purpose                                                                  |
+| ----------- | ------------------------------------------------------------------------ |
+| `commands`  | Push draw commands here                                                  |
+| `dirty`     | Mark widgets dirty / read subscriptions                                  |
+| `focus`     | Claim or release keyboard focus                                          |
 | `clips`     | Push / pop clip rects (paired with `Command::Clip` / `Command::ClipPop`) |
-| `dpi_scale` | Read-only DPI from `SDL_GetDisplayContentScale()`                      |
-| `safe_area` | Read-only platform safe-area insets                                    |
+| `dpi_scale` | Read-only DPI from `SDL_GetDisplayContentScale()`                        |
+| `safe_area` | Read-only platform safe-area insets                                      |
 
 ## Threading
 

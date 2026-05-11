@@ -4,6 +4,32 @@
 The toolchain and project layout described here are the planned v1.0 developer experience. The library is not yet published to crates.io and the `safi` CLI does not yet exist (it is a planned v1.1 deliverable). Use this page as the contract that the implementation must satisfy.
 :::
 
+## Working inside this repository (today)
+
+The library source lives in the `SafiUI/` workspace at the repo root. Today the workspace is a stub — `safi-ui` and `safi-ui-macros` exist as empty crates that `cargo check` cleanly. Modules will fill in across todos `00`…`32`.
+
+```
+.
+├── SafiUI/                  # Cargo workspace
+│   ├── Cargo.toml           # workspace root (members: safi-ui, safi-ui-macros)
+│   ├── rust-toolchain.toml  # pins stable Rust (1.95.0)
+│   ├── safi-ui/             # main library crate
+│   └── safi-ui-macros/      # proc-macro crate (vnode! lands in todo 03)
+├── docs/                    # this site (Rspress)
+├── todos/                   # 35-step build plan
+├── PRD.md                   # source of truth
+└── LICENSE                  # MIT
+```
+
+```bash
+cd SafiUI
+cargo check --workspace
+cargo clippy --workspace --all-targets -- -D warnings
+cargo fmt --check
+```
+
+The `examples/*` workspace glob is intentionally absent until todo 31 lands the example apps — Cargo errors on an empty glob.
+
 ## Prerequisites
 
 | Tool                  | Version | Purpose                                                          |

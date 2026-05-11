@@ -23,13 +23,13 @@ impl DirtyTracker {
 
 ## Methods
 
-| Method                         | Notes                                                                              |
-| ------------------------------ | ---------------------------------------------------------------------------------- |
-| `mark_dirty(id)`               | Flag a single widget dirty; cascade rule walks ancestors with dependent layout    |
-| `needs_redraw()`               | True if any widget is dirty; the main loop uses this to skip frames                |
-| `on_frame_complete()`          | Clear all dirty bits at end of frame                                               |
-| `subscribe(key, id)`           | Called from `PropUtils` when resolving a binding; registers a subscription         |
-| `invalidate_key(key)`          | Called from `StateStore::set`; marks all subscribed widgets dirty                  |
+| Method                | Notes                                                                          |
+| --------------------- | ------------------------------------------------------------------------------ |
+| `mark_dirty(id)`      | Flag a single widget dirty; cascade rule walks ancestors with dependent layout |
+| `needs_redraw()`      | True if any widget is dirty; the main loop uses this to skip frames            |
+| `on_frame_complete()` | Clear all dirty bits at end of frame                                           |
+| `subscribe(key, id)`  | Called from `PropUtils` when resolving a binding; registers a subscription     |
+| `invalidate_key(key)` | Called from `StateStore::set`; marks all subscribed widgets dirty              |
 
 ## Composite binding subscriptions
 

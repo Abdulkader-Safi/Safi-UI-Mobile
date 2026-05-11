@@ -14,51 +14,51 @@ None of these are implemented yet. A built-in navigation stack is **deferred to 
 
 ## `<NavBar>`
 
-| Prop          | Type        | Default  |
-| ------------- | ----------- | -------- |
-| `title`       | String      | none     |
-| `leftAction`  | Event name  | none     |
-| `rightAction` | Event name  | none     |
-| `bg`          | Color       | `#fff`   |
-| `titleColor`  | Color       | `#000`   |
+| Prop          | Type       | Default |
+| ------------- | ---------- | ------- |
+| `title`       | String     | none    |
+| `leftAction`  | Event name | none    |
+| `rightAction` | Event name | none    |
+| `bg`          | Color      | `#fff`  |
+| `titleColor`  | Color      | `#000`  |
 
 ## `<TabBar>`
 
-| Prop          | Type                | Default  |
-| ------------- | ------------------- | -------- |
-| `tabs`        | Comma list          | required |
-| `activeTab`   | String / binding    | first    |
-| `onTabChange` | Event name          | none     |
-| `bg`          | Color               | `#fff`   |
+| Prop          | Type             | Default  |
+| ------------- | ---------------- | -------- |
+| `tabs`        | Comma list       | required |
+| `activeTab`   | String / binding | first    |
+| `onTabChange` | Event name       | none     |
+| `bg`          | Color            | `#fff`   |
 
 ## `<Drawer>`
 
 **Requires `id`**.
 
-| Prop      | Type                | Default  |
-| --------- | ------------------- | -------- |
-| `open`    | Boolean / binding   | `false`  |
-| `onClose` | Event name          | none     |
-| `side`    | `left` \| `right`   | `left`   |
-| `width`   | Dimension           | `280`    |
+| Prop      | Type              | Default |
+| --------- | ----------------- | ------- |
+| `open`    | Boolean / binding | `false` |
+| `onClose` | Event name        | none    |
+| `side`    | `left` \| `right` | `left`  |
+| `width`   | Dimension         | `280`   |
 
 ## `<Modal>`
 
 **Requires `id`**.
 
-| Prop      | Type                          | Default  |
-| --------- | ----------------------------- | -------- |
-| `open`    | Boolean / binding             | `false`  |
-| `onClose` | Event name                    | none     |
-| `title`   | String                        | none     |
+| Prop      | Type                           | Default |
+| --------- | ------------------------------ | ------- |
+| `open`    | Boolean / binding              | `false` |
+| `onClose` | Event name                     | none    |
+| `title`   | String                         | none    |
 | `size`    | `sm` \| `md` \| `lg` \| `full` | `md`    |
 
 ## `<BottomSheet>`
 
 **Requires `id`**.
 
-| Prop          | Type                                  | Default  |
-| ------------- | ------------------------------------- | -------- |
-| `open`        | Boolean / binding                     | `false`  |
-| `onClose`     | Event name                            | none     |
-| `snapPoints`  | Comma list of percentages (`25,50,90`) | `90`    |
+| Prop         | Type                                   | Default |
+| ------------ | -------------------------------------- | ------- |
+| `open`       | Boolean / binding                      | `false` |
+| `onClose`    | Event name                             | none    |
+| `snapPoints` | Comma list of percentages (`25,50,90`) | `90`    |

@@ -21,14 +21,14 @@ let tree: VNode = vnode! {
 };
 ```
 
-| Attribute        | Detail                                                                                                          |
-| ---------------- | --------------------------------------------------------------------------------------------------------------- |
-| Output type      | `VNode` (same struct produced by `XmlParser::parse`)                                                            |
-| Prop values      | String literals only (matches the runtime model where all props are `String`)                                   |
-| Text content     | A bare string literal becomes `VNode::text_content`                                                             |
-| Bindings         | Written verbatim: `value="{{user.name}}"`                                                                       |
-| Compile errors   | Unknown tags compile fine (resolved at runtime via `ComponentRegistry`); malformed syntax fails at compile time |
-| Hot-reload       | Trees produced by `vnode!` are not hot-reloadable (no source file to watch)                                     |
+| Attribute      | Detail                                                                                                          |
+| -------------- | --------------------------------------------------------------------------------------------------------------- |
+| Output type    | `VNode` (same struct produced by `XmlParser::parse`)                                                            |
+| Prop values    | String literals only (matches the runtime model where all props are `String`)                                   |
+| Text content   | A bare string literal becomes `VNode::text_content`                                                             |
+| Bindings       | Written verbatim: `value="{{user.name}}"`                                                                       |
+| Compile errors | Unknown tags compile fine (resolved at runtime via `ComponentRegistry`); malformed syntax fails at compile time |
+| Hot-reload     | Trees produced by `vnode!` are not hot-reloadable (no source file to watch)                                     |
 
 ## `register_component!`
 

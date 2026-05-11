@@ -19,3 +19,32 @@ Built for engineers who want full control, game developers, embedded engineers, 
 The mobile UI layer that performance-critical apps have always needed.
 
 GitHub coming soon. Follow along. 🚀
+
+## Project layout
+
+| Path        | Contents                                                                              |
+| ----------- | ------------------------------------------------------------------------------------- |
+| `SafiUI/`   | Cargo workspace: `safi-ui` library, `safi-ui-macros` proc-macros, `examples/*` (later)|
+| `docs/`     | Rspress documentation site (`bun run dev` to preview, `bun run build` to ship)        |
+| `todos/`    | Build plan as 35 numbered todos (`00`…`34`) derived from `PRD.md`                     |
+| `PRD.md`    | Product requirements document, v2.3 — the source of truth for the spec               |
+| `LICENSE`   | MIT                                                                                   |
+
+## Quickstart
+
+```bash
+# Library workspace
+cd SafiUI
+cargo check --workspace
+cargo clippy --workspace -- -D warnings
+cargo fmt --check
+
+# Docs site
+cd docs
+bun install
+bun run dev
+```
+
+## Status
+
+Pre-implementation. See [`docs/docs/status.md`](docs/docs/status.md) for the live progress tracker and [`PRD.md`](PRD.md) for the full spec.

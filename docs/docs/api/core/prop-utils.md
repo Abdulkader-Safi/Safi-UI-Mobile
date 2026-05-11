@@ -25,16 +25,16 @@ let text = props.resolve_binding("label", state_store);
 
 ## Helpers
 
-| Helper                                                       | Returns               | On missing / invalid |
-| ------------------------------------------------------------ | --------------------- | -------------------- |
-| `get_str(name, default)`                                     | `String`              | `default`            |
-| `parse_f32(name, default)`                                   | `f32`                 | `default`            |
-| `parse_i32(name, default)`                                   | `i32`                 | `default`            |
-| `parse_bool(name, default)`                                  | `bool`                | `default`            |
-| `parse_color(name, default)`                                 | `Color`               | `default`            |
-| `parse_dim(name, default)`                                   | `Dimension`           | `default`            |
-| `parse_enum(name, default, options)`                         | enum variant          | `default`            |
-| `resolve_binding(name, state)`                               | `String`              | `""`                 |
+| Helper                               | Returns      | On missing / invalid |
+| ------------------------------------ | ------------ | -------------------- |
+| `get_str(name, default)`             | `String`     | `default`            |
+| `parse_f32(name, default)`           | `f32`        | `default`            |
+| `parse_i32(name, default)`           | `i32`        | `default`            |
+| `parse_bool(name, default)`          | `bool`       | `default`            |
+| `parse_color(name, default)`         | `Color`      | `default`            |
+| `parse_dim(name, default)`           | `Dimension`  | `default`            |
+| `parse_enum(name, default, options)` | enum variant | `default`            |
+| `resolve_binding(name, state)`       | `String`     | `""`                 |
 
 ## Color formats
 

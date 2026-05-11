@@ -26,20 +26,20 @@ pub trait Component {
 
 ## Required methods
 
-| Method      | Purpose                                                           |
-| ----------- | ----------------------------------------------------------------- |
-| `build`     | Emit draw commands for the widget's current state                 |
-| `bounds`    | Return the widget's current layout bounds                         |
+| Method   | Purpose                                           |
+| -------- | ------------------------------------------------- |
+| `build`  | Emit draw commands for the widget's current state |
+| `bounds` | Return the widget's current layout bounds         |
 
 ## Default-impl methods (override as needed)
 
-| Method        | Default                                          | When to override                                           |
-| ------------- | ------------------------------------------------ | ---------------------------------------------------------- |
-| `hit_test`    | Bounds containment check                         | Non-rectangular interactive areas                          |
-| `on_gesture`  | Returns `false` (don't consume)                  | Buttons, scrollables, anything tappable / swipeable        |
-| `on_mount`    | Noop                                             | Allocate caches, register observers                        |
-| `on_unmount`  | Noop                                             | Release resources, deregister                              |
-| `on_layout`   | Noop                                             | Position dependent on actual bounds (tooltips, popovers)   |
+| Method       | Default                         | When to override                                         |
+| ------------ | ------------------------------- | -------------------------------------------------------- |
+| `hit_test`   | Bounds containment check        | Non-rectangular interactive areas                        |
+| `on_gesture` | Returns `false` (don't consume) | Buttons, scrollables, anything tappable / swipeable      |
+| `on_mount`   | Noop                            | Allocate caches, register observers                      |
+| `on_unmount` | Noop                            | Release resources, deregister                            |
+| `on_layout`  | Noop                            | Position dependent on actual bounds (tooltips, popovers) |
 
 ## Lifecycle semantics
 

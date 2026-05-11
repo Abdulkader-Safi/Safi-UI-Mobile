@@ -1,0 +1,37 @@
+# Rust
+/SafiUI/target/
+**/target/
+**/*.rs.bk
+Cargo.lock.bak
+
+# IDE
+.vscode/
+.idea/
+*.iml
+.zed/
+
+# macOS
+.DS_Store
+
+# Xcode / iOS
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+DerivedData/
+*.xcuserstate
+
+# Android / Gradle / NDK
+local.properties
+.gradle/
+build/
+*.apk
+*.aab
+*.keystore
+
+# Node / docs site
+docs/node_modules/
+docs/.rspress/
+docs/dist/
+
+# Logs / tmp
+*.log
+*.tmp

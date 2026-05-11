@@ -16,68 +16,68 @@ None of these are implemented yet.
 
 ## `<Button>`
 
-| Prop       | Type                                                      | Default      |
-| ---------- | --------------------------------------------------------- | ------------ |
-| `label`    | String                                                    | `"Button"`   |
-| `onPress`  | Event name                                                | none         |
-| `variant`  | `primary` \| `secondary` \| `ghost` \| `danger`           | `primary`    |
-| `size`     | `sm` \| `md` \| `lg`                                      | `md`         |
-| `icon`     | Icon name                                                 | none         |
-| `disabled` | Boolean                                                   | `false`      |
+| Prop       | Type                                            | Default    |
+| ---------- | ----------------------------------------------- | ---------- |
+| `label`    | String                                          | `"Button"` |
+| `onPress`  | Event name                                      | none       |
+| `variant`  | `primary` \| `secondary` \| `ghost` \| `danger` | `primary`  |
+| `size`     | `sm` \| `md` \| `lg`                            | `md`       |
+| `icon`     | Icon name                                       | none       |
+| `disabled` | Boolean                                         | `false`    |
 
 ## `<Input>`
 
 **Requires `id`** so cursor position can survive hot-reload.
 
-| Prop          | Type                                              | Default      |
-| ------------- | ------------------------------------------------- | ------------ |
-| `placeholder` | String                                            | `""`         |
-| `value`       | String / binding                                  | `""`         |
-| `onChange`    | Event name                                        | none         |
-| `type`        | `text` \| `password` \| `number` \| `email`       | `text`       |
-| `maxLength`   | Number                                            | unlimited    |
+| Prop          | Type                                        | Default   |
+| ------------- | ------------------------------------------- | --------- |
+| `placeholder` | String                                      | `""`      |
+| `value`       | String / binding                            | `""`      |
+| `onChange`    | Event name                                  | none      |
+| `type`        | `text` \| `password` \| `number` \| `email` | `text`    |
+| `maxLength`   | Number                                      | unlimited |
 
 ## `<TextArea>`
 
 **Requires `id`**.
 
-| Prop          | Type        | Default |
-| ------------- | ----------- | ------- |
-| `placeholder` | String      | `""`    |
-| `rows`        | Number      | `4`     |
-| `onChange`    | Event name  | none    |
+| Prop          | Type       | Default |
+| ------------- | ---------- | ------- |
+| `placeholder` | String     | `""`    |
+| `rows`        | Number     | `4`     |
+| `onChange`    | Event name | none    |
 
 ## `<Checkbox>`
 
-| Prop       | Type        | Default  |
-| ---------- | ----------- | -------- |
-| `label`    | String      | none     |
-| `checked`  | Boolean     | `false`  |
-| `onChange` | Event name  | none     |
+| Prop       | Type       | Default |
+| ---------- | ---------- | ------- |
+| `label`    | String     | none    |
+| `checked`  | Boolean    | `false` |
+| `onChange` | Event name | none    |
 
 ## `<Switch>`
 
-| Prop       | Type        | Default  |
-| ---------- | ----------- | -------- |
-| `value`    | Boolean     | `false`  |
-| `onChange` | Event name  | none     |
-| `label`    | String      | none     |
+| Prop       | Type       | Default |
+| ---------- | ---------- | ------- |
+| `value`    | Boolean    | `false` |
+| `onChange` | Event name | none    |
+| `label`    | String     | none    |
 
 ## `<Select>`
 
-| Prop          | Type                | Default  |
-| ------------- | ------------------- | -------- |
-| `options`     | Comma list / binding| `[]`     |
-| `value`       | String              | none     |
-| `onChange`    | Event name          | none     |
-| `placeholder` | String              | `""`     |
+| Prop          | Type                 | Default |
+| ------------- | -------------------- | ------- |
+| `options`     | Comma list / binding | `[]`    |
+| `value`       | String               | none    |
+| `onChange`    | Event name           | none    |
+| `placeholder` | String               | `""`    |
 
 ## `<Slider>`
 
-| Prop       | Type        | Default  |
-| ---------- | ----------- | -------- |
-| `min`      | Number      | `0`      |
-| `max`      | Number      | `100`    |
-| `value`    | Number      | `0`      |
-| `step`     | Number      | `1`      |
-| `onChange` | Event name  | none     |
+| Prop       | Type       | Default |
+| ---------- | ---------- | ------- |
+| `min`      | Number     | `0`     |
+| `max`      | Number     | `100`   |
+| `value`    | Number     | `0`     |
+| `step`     | Number     | `1`     |
+| `onChange` | Event name | none    |

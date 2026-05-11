@@ -29,15 +29,15 @@ pub struct LayoutRect {
 
 ## Fields
 
-| Field          | Notes                                                          |
-| -------------- | -------------------------------------------------------------- |
-| `tag`          | XML tag name; resolved by `ComponentRegistry`                  |
-| `props`        | All XML attributes as strings                                  |
-| `children`     | Child nodes in source order                                    |
-| `text_content` | Bare text content of the element, if any                       |
-| `layout`       | Filled in by `LayoutEngine` after the layout pass              |
-| `id`           | Required for stateful components                               |
-| `key`          | Required on FlatList items                                     |
+| Field          | Notes                                             |
+| -------------- | ------------------------------------------------- |
+| `tag`          | XML tag name; resolved by `ComponentRegistry`     |
+| `props`        | All XML attributes as strings                     |
+| `children`     | Child nodes in source order                       |
+| `text_content` | Bare text content of the element, if any          |
+| `layout`       | Filled in by `LayoutEngine` after the layout pass |
+| `id`           | Required for stateful components                  |
+| `key`          | Required on FlatList items                        |
 
 ## Construction
 

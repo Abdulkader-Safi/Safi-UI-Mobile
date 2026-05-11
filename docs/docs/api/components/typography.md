@@ -15,14 +15,14 @@ None of these are implemented yet.
 
 The primary text component.
 
-| Prop         | Type             | Default  | Notes                                       |
-| ------------ | ---------------- | -------- | ------------------------------------------- |
-| `size`       | Number           | `14`     | dp                                          |
-| `color`      | Color            | `#000`   |                                             |
-| `weight`     | `100`–`900` or named | `400` | `normal`, `bold`, etc.                  |
-| `align`      | `left` \| `center` \| `right` \| `justify` | `left` |                              |
-| `italic`     | Boolean          | `false`  |                                             |
-| `lineHeight` | Number           | `1.4`    | Multiplier on `size`                        |
+| Prop         | Type                                       | Default | Notes                  |
+| ------------ | ------------------------------------------ | ------- | ---------------------- |
+| `size`       | Number                                     | `14`    | dp                     |
+| `color`      | Color                                      | `#000`  |                        |
+| `weight`     | `100`–`900` or named                       | `400`   | `normal`, `bold`, etc. |
+| `align`      | `left` \| `center` \| `right` \| `justify` | `left`  |                        |
+| `italic`     | Boolean                                    | `false` |                        |
+| `lineHeight` | Number                                     | `1.4`   | Multiplier on `size`   |
 
 ```xml
 <Text size="16" weight="bold" color="#fff">{{user.name}}</Text>
@@ -57,9 +57,9 @@ A small uppercase form label.
 
 Monospace text block for code snippets in docs / about screens.
 
-| Prop       | Type   | Default        |
-| ---------- | ------ | -------------- |
-| `language` | String | none           |
-| `bg`       | Color  | `#1e1e2e`      |
+| Prop       | Type   | Default   |
+| ---------- | ------ | --------- |
+| `language` | String | none      |
+| `bg`       | Color  | `#1e1e2e` |
 
 Syntax highlighting is **not** in v1; `language` is reserved for future use.

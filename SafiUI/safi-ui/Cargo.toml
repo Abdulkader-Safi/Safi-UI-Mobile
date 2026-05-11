@@ -1,0 +1,37 @@
+[package]
+name = "safi-ui"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description.workspace = true
+rust-version.workspace = true
+
+[lib]
+name = "safi_ui"
+path = "src/lib.rs"
+
+[features]
+default = []
+dev = ["hot-reload"]
+hot-reload = []
+
+[dependencies]
+safi-ui-macros = { path = "../safi-ui-macros", version = "0.1.0" }
+
+# Per PRD §15.1 — listed but unused until later todos wire them in.
+# Heavy native deps (sdl3) are pulled in via a feature gate in todo 02
+# (SDL3 window) to keep `cargo check` host-portable for todo 00.
+taffy     = "0.4"
+fontdue   = "0.8"
+rustybuzz = "0.14"
+roxmltree = "0.20"
+image     = "0.25"
+glam      = "0.28"
+serde     = { version = "1", features = ["derive"] }
+hashbrown = "0.14"
+
+[lints]
+workspace = true
