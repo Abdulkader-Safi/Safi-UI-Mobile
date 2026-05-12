@@ -6,6 +6,7 @@
 //! for the full specification.
 
 pub mod arena;
+pub mod commands;
 pub mod component;
 pub mod vnode;
 

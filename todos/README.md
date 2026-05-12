@@ -30,14 +30,15 @@ Work sequentially unless a todo is explicitly marked parallelisable. Don't skip 
 
 ## Progress
 
-| Todo                                | Status                                       |
-| ----------------------------------- | -------------------------------------------- |
-| `00-repo-and-cargo-setup`           | ✅ Completed                                 |
-| `01-ci-pipeline`                    | ✅ Completed                                 |
+| Todo                                | Status                                                               |
+| ----------------------------------- | -------------------------------------------------------------------- |
+| `00-repo-and-cargo-setup`           | ✅ Completed                                                         |
+| `01-ci-pipeline`                    | ✅ Completed                                                         |
 | `02-sdl3-window-on-android-and-ios` | ✅ Android verified (Pixel 8 emu, Vulkan) · ⚠️ iOS needs real iPhone |
-| `03-vnode-and-vnode-macro`          | ✅ Completed                                                        |
-| `04-widget-arena`                   | ✅ Completed                                                        |
-| `05-command-buffer`                 | ⏭ Next                                                              |
-| `06`–`34`                           | ⏳ Not started                                                      |
+| `03-vnode-and-vnode-macro`          | ✅ Completed                                                         |
+| `04-widget-arena`                   | ✅ Completed                                                         |
+| `05-command-buffer`                 | ✅ Completed                                                         |
+| `06-dirty-tracker-per-subtree`      | ⏭ Next                                                              |
+| `07`–`34`                           | ⏳ Not started                                                       |
 
 Each completed todo gets a `**Status:**` line near the top of its file and a row flipped above.
