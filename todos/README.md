@@ -34,7 +34,7 @@ Work sequentially unless a todo is explicitly marked parallelisable. Don't skip 
 | ----------------------------------- | -------------------------------------------------------------------- |
 | `00-repo-and-cargo-setup`           | ✅ Completed                                                         |
 | `01-ci-pipeline`                    | ✅ Completed                                                         |
-| `02-sdl3-window-on-android-and-ios` | ✅ Android verified (Pixel 8 emu, Vulkan) · ⚠️ iOS needs real iPhone |
+| `02-sdl3-window-on-android-and-ios` | ✅ Android (Pixel 8 emu) + ✅ iOS (iPhone 17 Pro Max) + sim via SDL_Renderer |
 | `03-vnode-and-vnode-macro`          | ✅ Completed                                                         |
 | `04-widget-arena`                   | ✅ Completed                                                         |
 | `05-command-buffer`                 | ✅ Completed                                                         |

@@ -2,7 +2,7 @@
 
 **Phase:** 0 — Foundations
 **PRD refs:** §8.1, §9.1, §9.2, §16 (Phase 0)
-**Status:** ✅ Android verified on emulator (Pixel 8, Vulkan), ⚠️ iOS code landed (Simulator can't run SDL_GPU; awaiting real iPhone) — May 2026
+**Status:** ✅ Android verified on Pixel 8 emulator (Vulkan), ✅ iOS verified on iPhone 17 Pro Max (Metal). iOS Simulator works via an `SDL_Renderer` software-backend fallback in `examples/window-smoke/src/app.rs` (sim's virtual GPU can't satisfy SDL_GPU's `MTLGPUFamilyApple3` check). Flutter-style one-shot runners landed in `SafiUI/scripts/{dev-android,dev-ios}.sh`. — May 2026
 
 ## Goal
 

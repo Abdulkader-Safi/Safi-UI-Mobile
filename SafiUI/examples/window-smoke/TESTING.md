@@ -10,6 +10,30 @@ You should end up with:
 
 ---
 
+## Quickstart: one-shot terminal run
+
+For the fast loop (build + install + launch + tail logs in a single command),
+use the wrappers under `SafiUI/scripts/`:
+
+```bash
+cd SafiUI
+./scripts/dev-android.sh           # boots emulator (or uses attached device)
+./scripts/dev-ios.sh               # boots iPhone 15 Pro simulator
+```
+
+See `SafiUI/scripts/README.md` for flags (`--release`, `--clean`, `--avd`,
+`--device`, `--simulator`, `--no-launch`, `--no-logs`).
+
+The iOS Simulator path is for fast iteration on app-launch / Swift /
+linking — **SDL_GPU does not initialise in the simulator** (see the iOS
+section below). For a full visual check use a real iPhone via Xcode.
+
+The sections below are for IDE-driven runs and for real-iPhone testing,
+which the scripts deliberately don't automate (Apple Developer signing
+makes that Xcode territory until todo 33 lands `safi dev`).
+
+---
+
 ## iOS — Xcode (real iPhone)
 
 > :warning: **The iOS Simulator cannot run SDL_GPU Metal.** The simulator's

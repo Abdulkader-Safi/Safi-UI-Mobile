@@ -118,6 +118,25 @@ rm -rf "${script_dir}/build/sdl3-include"
 mkdir -p "${script_dir}/build/sdl3-include/SDL3"
 cp -R "${sdl_headers}/." "${script_dir}/build/sdl3-include/SDL3/"
 
+# --- libSDL3.dylib (shared build) ---
+# Mirrors what android/build.sh does for libSDL3.so. Without this, Xcode
+# can't resolve _SDL_* symbols at link time and at runtime the app can't
+# dlopen SDL3 from the .app bundle.
+sdl3_dylib=$(find "${workspace_dir}/target/${rust_target}/${target_dir}/build" \
+    -path "*/sdl3-sys-*/out/lib/libSDL3*.dylib" -type f 2>/dev/null \
+    | head -n1 || true)
+if [[ -z "${sdl3_dylib}" ]]; then
+    echo "ERROR: libSDL3.dylib not found under target/${rust_target}/${target_dir}/build." >&2
+    echo "Is sdl3-rs configured with build-from-source (shared, not static)?" >&2
+    exit 1
+fi
+echo "==> Copying libSDL3.dylib from ${sdl3_dylib}"
+cp "${sdl3_dylib}" "${build_dir}/libSDL3.dylib"
+
+# Rewrite the dylib's install-name to @rpath so dyld resolves it from the
+# .app's Frameworks/ at runtime. Idempotent.
+install_name_tool -id "@rpath/libSDL3.dylib" "${build_dir}/libSDL3.dylib"
+
 echo "==> xcodebuild (${config}, ${xcode_sdk})"
 cd "${script_dir}"
 xcodebuild \
