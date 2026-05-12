@@ -1,5 +1,7 @@
 # 08 — `GestureRecognizer`
 
+**Status:** ✅ Completed. `GestureRecognizer` in `safi-ui/src/gestures.rs` translates `finger_down/motion/up/cancel` + per-frame `tick(now_ms)` into the four §6.9 `Gesture` variants. `flush(arena)` dispatches via reverse-Z hit test (no `event_bus` param — components reach for `EventBus::global()` from `on_gesture` once todo 11 lands). `Component` trait extended with `hit_test` + `on_gesture` defaults; `LayoutRect::contains(Vec2)` added. 19 unit tests incl. boundary timing (199/201/499/501 ms), 5%-tolerance velocity check, reverse-Z order, multi-touch, cancel. fmt + clippy `-D warnings` clean.
+
 **Phase:** 1 — Core Engine
 **PRD refs:** §6.9, §5.3 (event flow)
 

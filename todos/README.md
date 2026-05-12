@@ -40,7 +40,8 @@ Work sequentially unless a todo is explicitly marked parallelisable. Don't skip 
 | `05-command-buffer`                 | ✅ Completed                                                         |
 | `06-dirty-tracker-per-subtree`      | ✅ Completed                                                         |
 | `07-ui-context`                     | ✅ Completed                                                         |
-| `08-gesture-recognizer`             | ⏭ Next                                                              |
-| `09`–`34`                           | ⏳ Not started                                                       |
+| `08-gesture-recognizer`             | ✅ Completed                                                         |
+| `09-gpu-renderer-rect-and-text`     | ⏭ Next                                                              |
+| `10`–`34`                           | ⏳ Not started                                                       |
 
 Each completed todo gets a `**Status:**` line near the top of its file and a row flipped above.

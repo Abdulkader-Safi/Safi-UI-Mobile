@@ -13,6 +13,7 @@ pub mod context;
 pub mod dirty;
 pub mod edge_insets;
 pub mod focus;
+pub mod gestures;
 pub mod vnode;
 
 pub use safi_ui_macros::vnode;
