@@ -19,11 +19,11 @@
 
 use std::ffi::{c_char, c_int};
 
-use sdl3::Sdl;
 use sdl3::event::Event;
 use sdl3::gpu::{ColorTargetInfo, Device, LoadOp, ShaderFormat, StoreOp};
 use sdl3::pixels::Color;
 use sdl3::video::Window;
+use sdl3::Sdl;
 
 const CLEAR_COLOR: Color = Color::RGB(0x4f, 0x8e, 0xf7);
 
@@ -198,7 +198,9 @@ fn run_canvas_loop(sdl: Sdl, window: Window) -> Result<(), Box<dyn std::error::E
     // Diagnostic: list every render driver SDL3 has compiled in.
     unsafe {
         let n = sdl3::sys::render::SDL_GetNumRenderDrivers();
-        log(&format!("safi-ui-window-smoke: {n} render drivers available:"));
+        log(&format!(
+            "safi-ui-window-smoke: {n} render drivers available:"
+        ));
         for i in 0..n {
             let p = sdl3::sys::render::SDL_GetRenderDriver(i);
             let name = if p.is_null() {
