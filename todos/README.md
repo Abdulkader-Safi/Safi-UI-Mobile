@@ -38,7 +38,8 @@ Work sequentially unless a todo is explicitly marked parallelisable. Don't skip 
 | `03-vnode-and-vnode-macro`          | ✅ Completed                                                         |
 | `04-widget-arena`                   | ✅ Completed                                                         |
 | `05-command-buffer`                 | ✅ Completed                                                         |
-| `06-dirty-tracker-per-subtree`      | ⏭ Next                                                              |
-| `07`–`34`                           | ⏳ Not started                                                       |
+| `06-dirty-tracker-per-subtree`      | ✅ Completed                                                         |
+| `07-ui-context`                     | ⏭ Next                                                              |
+| `08`–`34`                           | ⏳ Not started                                                       |
 
 Each completed todo gets a `**Status:**` line near the top of its file and a row flipped above.

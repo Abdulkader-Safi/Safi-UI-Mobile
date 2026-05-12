@@ -1,5 +1,7 @@
 # 06 — `DirtyTracker` (per-subtree, `WidgetId`-keyed)
 
+**Status:** ✅ Completed. `DirtyTracker` in `safi-ui/src/dirty.rs` with `mark_dirty(arena, id)` implementing the §5.3 cascade rule (walks parents, stops at `Resolved` ancestors, short-circuits on already-dirty), key-subscription `subscribe`/`invalidate_key`/`unsubscribe_widget`, and a `SizingMode` side-table (`Resolved` / `Auto`, default `Auto`) that todo 10 will populate post-layout. Signature deviates from §6.4 sample (takes `&WidgetArena`) — §5.3 cascade requires it. 16 unit tests covering all three sizing scenarios + mixed cascade + short-circuit + subscriptions + frame lifecycle. fmt + clippy `-D warnings` clean.
+
 **Phase:** 1 — Core Engine
 **PRD refs:** §5.1 (Pillar 2), §5.3 (dirty cascade rule), §6.4
 

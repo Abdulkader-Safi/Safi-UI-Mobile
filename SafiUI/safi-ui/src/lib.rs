@@ -8,6 +8,7 @@
 pub mod arena;
 pub mod commands;
 pub mod component;
+pub mod dirty;
 pub mod vnode;
 
 pub use safi_ui_macros::vnode;
