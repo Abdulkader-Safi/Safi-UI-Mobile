@@ -6,9 +6,13 @@
 //! for the full specification.
 
 pub mod arena;
+pub mod clip;
 pub mod commands;
 pub mod component;
+pub mod context;
 pub mod dirty;
+pub mod edge_insets;
+pub mod focus;
 pub mod vnode;
 
 pub use safi_ui_macros::vnode;

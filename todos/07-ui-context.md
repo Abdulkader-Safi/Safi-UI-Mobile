@@ -1,5 +1,7 @@
 # 07 — `UIContext`, `ClipStack`, `FocusSystem`
 
+**Status:** ✅ Completed. `UIContext` in `safi-ui/src/context.rs` aggregates `CommandBuffer` / `DirtyTracker` / `FocusSystem` / `ClipStack` + `dpi_scale` + `safe_area`. `push_clip` / `pop_clip` own the `Command::Clip` / `ClipPop` pairing (debug_assert + eprintln on mismatch). `request_focus` / `clear_focus` take `&WidgetArena` and mark prev + new dirty. New modules: `clip.rs`, `focus.rs`, `edge_insets.rs`. 16 tests pass (incl. catch_unwind debug-panic assertion); fmt + clippy `-D warnings` clean.
+
 **Phase:** 1 — Core Engine
 **PRD refs:** §6.2
 
