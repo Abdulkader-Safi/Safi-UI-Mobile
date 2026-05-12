@@ -1,5 +1,7 @@
 # 09 — `GpuRenderer` (rect + text, Phase 1 acceptance demo)
 
+**Status:** ✅ Host-testable scaffolding · ⚠️ Device demo pending. `safi-ui::gpu` module ships the `Renderer` trait, pure-Rust `Batcher` (PRD §8.3), `MockRenderer`, and an `SdlGpuRenderer` skeleton behind a new `gpu` Cargo feature. `shaders/rect.glsl` (rounded-rect SDF) + `shaders/text.glsl` (atlas-sampling placeholder, real glyphs in todo 16) committed; `build.rs` compiles via `glslc` only when `--features gpu` is set (host CI unchanged). 11 unit + acceptance tests pass — including "60 commands → ≤ 15 batches". Device-session follow-ups: SDL event-pump wiring, hand-built Button widget, on-device tap-to-flip demo on Pixel 8 / iPhone 15.
+
 **Phase:** 1 — Core Engine
 **PRD refs:** §8.1, §8.2, §8.3, §16 (Phase 1 acceptance demo)
 

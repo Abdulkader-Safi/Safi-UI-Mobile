@@ -92,7 +92,8 @@ impl GestureRecognizer {
         };
         let delta = pos - s.last_pos;
         let dt_ms = timestamp_ms.saturating_sub(s.last_motion_ms).max(1);
-        #[allow(clippy::cast_precision_loss)] // session timestamps fit in f32 mantissa for any realistic SDL run
+        #[allow(clippy::cast_precision_loss)]
+        // session timestamps fit in f32 mantissa for any realistic SDL run
         let dt_sec = dt_ms as f32 / 1000.0;
         let velocity = delta / dt_sec;
         s.last_velocity = velocity;

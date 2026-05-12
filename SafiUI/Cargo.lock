@@ -1006,6 +1006,7 @@ dependencies = [
  "roxmltree",
  "rustybuzz",
  "safi-ui-macros",
+ "sdl3",
  "serde",
  "taffy",
  "trybuild",

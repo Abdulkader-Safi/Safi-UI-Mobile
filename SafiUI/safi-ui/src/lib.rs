@@ -14,6 +14,7 @@ pub mod dirty;
 pub mod edge_insets;
 pub mod focus;
 pub mod gestures;
+pub mod gpu;
 pub mod vnode;
 
 pub use safi_ui_macros::vnode;

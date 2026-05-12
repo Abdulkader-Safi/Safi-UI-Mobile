@@ -17,6 +17,9 @@ path = "src/lib.rs"
 default = []
 dev = ["hot-reload"]
 hot-reload = []
+# Pulls in sdl3 + the `SdlGpuRenderer` impl. Off by default so host CI stays
+# free of native deps; device-build jobs (Android/iOS) opt in. See todo 09.
+gpu = ["dep:sdl3"]
 
 [dependencies]
 safi-ui-macros = { path = "../safi-ui-macros", version = "0.1.0" }
@@ -32,6 +35,10 @@ image     = "0.25"
 glam      = "0.28"
 serde     = { version = "1", features = ["derive"] }
 hashbrown = "0.14"
+
+# Only pulled in by `--features gpu` (todo 09). Same build flavour as
+# examples/window-smoke: build-from-source so SDL3 ships as its own .so.
+sdl3 = { version = "0.18", default-features = false, features = ["build-from-source"], optional = true }
 
 [dev-dependencies]
 proptest = "1"
