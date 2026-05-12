@@ -35,7 +35,8 @@ Work sequentially unless a todo is explicitly marked parallelisable. Don't skip 
 | `00-repo-and-cargo-setup`           | ✅ Completed                                 |
 | `01-ci-pipeline`                    | ✅ Completed                                 |
 | `02-sdl3-window-on-android-and-ios` | ✅ Android verified (Pixel 8 emu, Vulkan) · ⚠️ iOS needs real iPhone |
-| `03-vnode-and-vnode-macro`          | ⏭ Next                                                              |
-| `04`–`34`                           | ⏳ Not started                                                      |
+| `03-vnode-and-vnode-macro`          | ✅ Completed                                                        |
+| `04-widget-arena`                   | ⏭ Next                                                              |
+| `05`–`34`                           | ⏳ Not started                                                      |
 
 Each completed todo gets a `**Status:**` line near the top of its file and a row flipped above.

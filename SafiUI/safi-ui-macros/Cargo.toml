@@ -13,8 +13,9 @@ description = "Proc-macros for safi-ui (vnode! and friends)"
 proc-macro = true
 
 [dependencies]
-# The proc-macro toolkit is wired up in todo 03.
-# Kept empty here so todo 00's `cargo check` stays minimal.
+syn = { version = "2", features = ["full", "extra-traits"] }
+quote = "1"
+proc-macro2 = "1"
 
 [lints]
 workspace = true

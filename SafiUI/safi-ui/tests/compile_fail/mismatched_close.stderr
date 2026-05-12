@@ -1,0 +1,5 @@
+error: closing tag `</B>` does not match opening tag `<A>`
+ --> tests/compile_fail/mismatched_close.rs:4:27
+  |
+4 |     let _ = vnode! { <A></B> };
+  |                           ^

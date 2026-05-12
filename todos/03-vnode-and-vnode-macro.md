@@ -1,5 +1,7 @@
 # 03 — `VNode` struct and `vnode!` macro
 
+**Status:** ✅ Completed. `VNode`/`Props`/`LayoutRect` land in `safi-ui/src/vnode.rs`; `vnode!` proc-macro implemented in `safi-ui-macros` (parser + codegen) and re-exported from `safi-ui`. 10 runtime tests + 5 trybuild compile-fail snapshots all pass; `cargo fmt --check` and `cargo clippy --workspace --all-targets -- -D warnings` clean.
+
 **Phase:** 0 — Foundations
 **PRD refs:** §6.1, §6.15
 

@@ -1,0 +1,5 @@
+error: vnode! body must be either a single string literal or one or more child elements, not both
+ --> tests/compile_fail/mixed_text_and_child.rs:4:29
+  |
+4 |     let _ = vnode! { <A>"hi"<B/></A> };
+  |                             ^

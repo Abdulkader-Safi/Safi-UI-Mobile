@@ -1,0 +1,7 @@
+error: expected `<`
+ --> tests/compile_fail/unclosed.rs:4:13
+  |
+4 |     let _ = vnode! { <A> };
+  |             ^^^^^^^^^^^^^^
+  |
+  = note: this error originates in the macro `vnode` (in Nightly builds, run with -Z macro-backtrace for more info)
