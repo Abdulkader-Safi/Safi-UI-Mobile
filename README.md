@@ -6,6 +6,9 @@
 
 > An open-source declarative XML-driven mobile UI framework built in pure Rust.
 
+![Safi UI](img/screenshot.png)
+
+
 Write UI in XML. Render natively on Android and iOS. Zero managed runtime. Zero translation layers. Direct Vulkan on Android, direct Metal on iOS, both through SDL3's GPU API.
 
 No Flutter. No React Native. No JVM, no Dart VM, no V8. Just native GPU performance from a single Rust codebase.

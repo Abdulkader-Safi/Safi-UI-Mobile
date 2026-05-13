@@ -30,19 +30,20 @@ Work sequentially unless a todo is explicitly marked parallelisable. Don't skip 
 
 ## Progress
 
-| Todo                                | Status                                                               |
-| ----------------------------------- | -------------------------------------------------------------------- |
-| `00-repo-and-cargo-setup`           | ✅ Completed                                                         |
-| `01-ci-pipeline`                    | ✅ Completed                                                         |
-| `02-sdl3-window-on-android-and-ios` | ✅ Android (Pixel 8 emu) + ✅ iOS (iPhone 17 Pro Max) + sim via SDL_Renderer |
-| `03-vnode-and-vnode-macro`          | ✅ Completed                                                         |
-| `04-widget-arena`                   | ✅ Completed                                                         |
-| `05-command-buffer`                 | ✅ Completed                                                         |
-| `06-dirty-tracker-per-subtree`      | ✅ Completed                                                         |
-| `07-ui-context`                     | ✅ Completed                                                         |
-| `08-gesture-recognizer`             | ✅ Completed                                                         |
-| `09-gpu-renderer-rect-and-text`     | ✅ Batcher + scaffolding · ⚠️ Device demo pending                    |
-| `10-taffy-layout-engine`            | ⏭ Next                                                              |
-| `11`–`34`                           | ⏳ Not started                                                       |
+| Todo                                | Status                                                                               |
+| ----------------------------------- | ------------------------------------------------------------------------------------ |
+| `00-repo-and-cargo-setup`           | ✅ Completed                                                                         |
+| `01-ci-pipeline`                    | ✅ Completed                                                                         |
+| `02-sdl3-window-on-android-and-ios` | ✅ Android (Pixel 8 emu) + ✅ iOS (iPhone 17 Pro Max) + sim via SDL_Renderer         |
+| `03-vnode-and-vnode-macro`          | ✅ Completed                                                                         |
+| `04-widget-arena`                   | ✅ Completed                                                                         |
+| `05-command-buffer`                 | ✅ Completed                                                                         |
+| `06-dirty-tracker-per-subtree`      | ✅ Completed                                                                         |
+| `07-ui-context`                     | ✅ Completed                                                                         |
+| `08-gesture-recognizer`             | ✅ Completed                                                                         |
+| `09-gpu-renderer-rect-and-text`     | ✅ Batcher + scaffolding · ⚠️ Device demo pending                                    |
+| `10-taffy-layout-engine`            | ✅ `LayoutEngine` + window-smoke layout demo (canvas fallback paints; GPU path logs) |
+| `11-xml-parser`                     | ⏭ Next                                                                              |
+| `12`–`34`                           | ⏳ Not started                                                                       |
 
 Each completed todo gets a `**Status:**` line near the top of its file and a row flipped above.

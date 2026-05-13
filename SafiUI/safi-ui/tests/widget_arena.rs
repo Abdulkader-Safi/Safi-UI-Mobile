@@ -73,7 +73,7 @@ fn parent_child_topology() {
     assert_eq!(a.parent_of(c1), Some(p));
     assert_eq!(a.parent_of(c2), Some(p));
     assert_eq!(a.children_of(p), &[c1, c2]);
-    assert_eq!(a.children_of(c1), &[]);
+    assert_eq!(a.children_of(c1), &[] as &[WidgetId]);
     assert_eq!(a.roots(), &[p]);
 }
 
@@ -194,13 +194,13 @@ fn dead_id_apis_are_safe() {
 
     assert!(a.get(id).is_none());
     assert_eq!(a.parent_of(id), None);
-    assert_eq!(a.children_of(id), &[]);
+    assert_eq!(a.children_of(id), &[] as &[WidgetId]);
     assert_eq!(a.bounds(id), None);
     assert_eq!(a.taffy_node(id), None);
 
     let unknown: WidgetId = 9999;
     assert!(a.get(unknown).is_none());
-    assert_eq!(a.children_of(unknown), &[]);
+    assert_eq!(a.children_of(unknown), &[] as &[WidgetId]);
 }
 
 #[test]

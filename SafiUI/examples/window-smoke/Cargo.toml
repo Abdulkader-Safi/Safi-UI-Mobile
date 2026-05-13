@@ -7,7 +7,7 @@ authors.workspace = true
 repository.workspace = true
 homepage.workspace = true
 rust-version.workspace = true
-description = "SDL3 + SDL_GPU window smoke test on Android (Vulkan) and iOS (Metal)"
+description = "Canonical minimum-viable Safi-UI app — declare a UI tree, ship."
 publish = false
 
 [lib]
@@ -17,27 +17,25 @@ path = "src/lib.rs"
 
 # The default build is a stub — no SDL3 link, no native deps. The actual
 # Android/iOS smoke binary is enabled with `--features device-build`, which
-# pulls in sdl3 + sdl3-main and triggers the SDL3 CMake build (requires NDK
-# on Android or the Xcode toolchain on iOS).
+# turns on safi-ui's `runtime` feature. That pulls in sdl3 transitively and
+# triggers the SDL3 CMake build (requires NDK on Android or the Xcode
+# toolchain on iOS).
 #
 # CI invokes:
 #   cargo ndk -t arm64-v8a build -p safi-ui-window-smoke --features device-build
-#   cargo build -p safi-ui-window-smoke --target aarch64-apple-ios --features device-build
+#   cargo build --target aarch64-apple-ios -p safi-ui-window-smoke --features device-build
 #
 # Local host runs (`cargo check --workspace`, `cargo clippy`, `cargo test`)
 # see only the stub and never reach the SDL3 build script.
 
 [features]
 default = []
-device-build = ["dep:sdl3"]
+device-build = ["safi-ui/runtime"]
 
 [dependencies]
-# `build-from-source` (not `-static`) compiles SDL3 as its own shared
-# library (`libSDL3.so`). On Android we ship that .so alongside our
-# library .so so SDL3's `Java_org_libsdl_app_*` JNI entry points are
-# globally visible from libSDL3.so directly. Static-linking SDL3 demotes
-# the JNI symbols to LOCAL inside our cdylib, breaking the JNI bridge.
-sdl3 = { version = "0.18", default-features = false, features = ["build-from-source"], optional = true }
+# safi-ui's `runtime` feature owns SDL3 — examples don't depend on sdl3
+# directly. Likewise no taffy: layout is an engine concern.
+safi-ui = { path = "../../safi-ui", default-features = false }
 
 [lints]
 workspace = true

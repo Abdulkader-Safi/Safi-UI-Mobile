@@ -1,5 +1,6 @@
 # 10 — `LayoutEngine` (Taffy integration)
 
+**Status:** ✅ Headless `LayoutEngine` + window-smoke layout demo (host SDL_Renderer + on-device log) · 22 layout tests + 50-node perf test green
 **Phase:** 2 — Layout + Parse
 **PRD refs:** §6.6
 

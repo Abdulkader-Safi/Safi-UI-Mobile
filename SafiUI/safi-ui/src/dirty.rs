@@ -5,9 +5,11 @@
 //! This deviates from the illustrative §6.4 sample signatures — Pillar-2
 //! semantics win when they conflict.
 //!
-//! `SizingMode` is stored in a tracker-owned side-table. Todo `10` (Taffy
-//! integration) populates it after layout; until then everything defaults to
-//! `Auto` (cascade-through), the conservative invalidation choice.
+//! [`SizingMode`] is stored in a tracker-owned side-table. The classification
+//! itself is computed by [`crate::layout::LayoutEngine::sizing_of`]; callers
+//! wire it in via [`DirtyTracker::set_sizing`] once a [`crate::vnode::VNode`]
+//! is bound to a widget id (todo `13`). Until that binding lands, entries
+//! default to `Auto` (cascade-through), the conservative invalidation choice.
 
 use std::collections::{HashMap, HashSet};
 

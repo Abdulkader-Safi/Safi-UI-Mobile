@@ -1025,7 +1025,7 @@ dependencies = [
 name = "safi-ui-window-smoke"
 version = "0.1.0"
 dependencies = [
- "sdl3",
+ "safi-ui",
 ]
 
 [[package]]
