@@ -50,7 +50,8 @@ Work sequentially unless a todo is explicitly marked parallelisable. Don't skip 
 | `15-base-widgets-view-text-button`  | ✅ `View` (+Screen/Row/Column/Stack/Spacer) + `Text` (+Heading/Label) + `Button` (4 variants) + `register_builtins` — 18 tests   |
 | `16-font-atlas-fontdue-rustybuzz`   | ✅ `FontAtlas` (fontdue) + `TextShaper` (rustybuzz) + `App::with_font_bytes` + per-pixel SDL_Renderer blit — 9 tests              |
 | `17-image-pipeline-channel-based`   | ⏳ Not started                                                                                                                   |
-| `18`–`23`                           | ⏳ Not started                                                                                                                   |
+| `18`–`22`                           | ⏳ Not started                                                                                                                   |
+| `23-state-store`                    | ✅ `StateStore` + `BindingSource` impl + `build_tree_with` resolves `{{bindings}}` from global store — 13 tests                   |
 | `24-event-bus-main-thread-and-post-async` | ✅ `EventBus` (on/emit/off + post_async + drain_async) + App::run hit-test dispatch — 10 tests                              |
 | `25`–`34`                           | ⏳ Not started                                                                                                                   |
 

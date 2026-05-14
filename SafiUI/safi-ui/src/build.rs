@@ -28,45 +28,79 @@
 //! [`WidgetArena`]: crate::arena::WidgetArena
 
 use crate::context::UIContext;
+use crate::props::{resolve_composite, BindingSource};
 use crate::registry::ComponentRegistry;
 use crate::vnode::VNode;
 
 /// Walk `tree` and emit draw commands into `ctx`.
 ///
-/// Each node's `tag` is resolved through `registry`; an unknown tag
-/// falls through to [`DebugBox`] per PRD §5.4. The walker copies
-/// `node.text_content` into a synthetic `value` prop before
-/// resolution so widgets that look at `value` (notably [`Text`])
-/// see XML body text without needing a special-cased extraction.
+/// Equivalent to [`build_tree_with`] with an empty
+/// [`BindingSource`] — `{{key}}` bindings in props resolve to empty
+/// strings. Apps that want live state should call
+/// [`build_tree_with`] passing a [`StateStore`].
 ///
-/// [`DebugBox`]: crate::debug_box::DebugBox
-/// [`Text`]: crate::widgets::Text
+/// [`StateStore`]: crate::state::StateStore
+/// [`BindingSource`]: crate::props::BindingSource
 pub fn build_tree(tree: &VNode, registry: &ComponentRegistry, ctx: &mut UIContext) {
-    walk(tree, registry, ctx);
+    let empty = EmptyBindings;
+    walk(tree, registry, &empty, ctx);
 }
 
-fn walk(node: &VNode, registry: &ComponentRegistry, ctx: &mut UIContext) {
-    let mut props = node.props.clone();
+/// Walk `tree` resolving `{{key}}` bindings against `bindings` as it
+/// goes. Every prop value is run through `resolve_composite` before
+/// being handed to the widget factory, so `<Text value="Hello {{name}}!" />`
+/// substitutes from the store at build time (PRD §6.12).
+///
+/// `node.text_content` is similarly resolved before being injected
+/// into the synthetic `value` prop.
+pub fn build_tree_with<S: BindingSource>(
+    tree: &VNode,
+    registry: &ComponentRegistry,
+    bindings: &S,
+    ctx: &mut UIContext,
+) {
+    walk(tree, registry, bindings, ctx);
+}
 
-    // Bridge: XML body text (`<Text>Hello</Text>`) reaches widgets
-    // via a synthetic `value` prop. If the prop is already set the
-    // explicit form (`<Text value="…" />`) wins.
+fn walk<S: BindingSource>(
+    node: &VNode,
+    registry: &ComponentRegistry,
+    bindings: &S,
+    ctx: &mut UIContext,
+) {
+    // Resolve every prop value through the binding source. Static
+    // strings pass through unchanged; `"{{user.name}}"` becomes the
+    // current value.
+    let mut props = crate::vnode::Props::with_capacity(node.props.len());
+    for (k, v) in &node.props {
+        props.insert(k.clone(), resolve_composite(v, bindings));
+    }
+
+    // Bridge: XML body text reaches widgets via a synthetic `value`
+    // prop. Explicit `<Text value="…" />` wins over body text.
     if let Some(text) = &node.text_content {
         props
             .entry("value".to_string())
-            .or_insert_with(|| text.clone());
+            .or_insert_with(|| resolve_composite(text, bindings));
     }
 
-    // Resolve and build. `bounds` is populated by `LayoutEngine`
-    // before the walker runs — see `App::run`'s frame loop. Tests
-    // that build directly off a `vnode!` tree must call
-    // `LayoutEngine::compute` first or accept zero-sized commands.
     let component = registry.resolve(&node.tag, &props);
     component.build(ctx, node.layout);
 
     // Children paint on top of their parent — depth-first paint
     // order matches the source order in XML.
     for child in &node.children {
-        walk(child, registry, ctx);
+        walk(child, registry, bindings, ctx);
+    }
+}
+
+/// Internal no-op `BindingSource` used by [`build_tree`] when the
+/// caller didn't supply one. Every lookup returns `None`, which
+/// `resolve_composite` collapses to empty string per PRD §6.12.
+struct EmptyBindings;
+
+impl BindingSource for EmptyBindings {
+    fn get_binding(&self, _key: &str) -> Option<String> {
+        None
     }
 }

@@ -26,12 +26,13 @@ use sdl3::video::Window;
 use taffy::{AvailableSpace, Size};
 
 use crate::assets::{AssetLoader, DpiScale};
-use crate::build::build_tree;
+use crate::build::build_tree_with;
 use crate::commands::Command;
 use crate::context::UIContext;
 use crate::events::EventBus;
 use crate::layout::LayoutEngine;
 use crate::registry::ComponentRegistry;
+use crate::state::StateStore;
 use crate::text::{FontAtlas, FontId, PositionedGlyph};
 use crate::vnode::{LayoutRect, VNode};
 use crate::widgets::register_builtins;
@@ -503,10 +504,14 @@ fn run_canvas_loop(
             log(&format!("safi-ui::app: drained {drained} async events"));
         }
 
-        // Build pass: walk the VNode tree, resolve through the
+        // Build pass: walk the VNode tree, resolve {{key}} bindings
+        // against the global StateStore, resolve tags through the
         // registry, emit Command sequence into ui_ctx.commands.
         ui_ctx.commands.clear();
-        build_tree(&tree, &registry, &mut ui_ctx);
+        {
+            let store = StateStore::global();
+            build_tree_with(&tree, &registry, &*store, &mut ui_ctx);
+        }
 
         canvas.set_draw_color(CLEAR_COLOR);
         canvas.clear();
