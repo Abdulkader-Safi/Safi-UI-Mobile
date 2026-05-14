@@ -30,22 +30,23 @@ Work sequentially unless a todo is explicitly marked parallelisable. Don't skip 
 
 ## Progress
 
-| Todo                                | Status                                                                               |
-| ----------------------------------- | ------------------------------------------------------------------------------------ |
-| `00-repo-and-cargo-setup`           | ✅ Completed                                                                         |
-| `01-ci-pipeline`                    | ✅ Completed                                                                         |
-| `02-sdl3-window-on-android-and-ios` | ✅ Android (Pixel 8 emu) + ✅ iOS (iPhone 17 Pro Max) + sim via SDL_Renderer         |
-| `03-vnode-and-vnode-macro`          | ✅ Completed                                                                         |
-| `04-widget-arena`                   | ✅ Completed                                                                         |
-| `05-command-buffer`                 | ✅ Completed                                                                         |
-| `06-dirty-tracker-per-subtree`      | ✅ Completed                                                                         |
-| `07-ui-context`                     | ✅ Completed                                                                         |
-| `08-gesture-recognizer`             | ✅ Completed                                                                         |
-| `09-gpu-renderer-rect-and-text`     | ✅ Batcher + scaffolding · ⚠️ Device demo pending                                    |
-| `10-taffy-layout-engine`            | ✅ `LayoutEngine` + window-smoke layout demo (canvas fallback paints; GPU path logs) |
-| `11-xml-parser`                     | ✅ `parse::{XmlParser, ParseError}` (roxmltree); host-tested; `vnode!` ≡ XML output  |
+| Todo                                | Status                                                                                                                           |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `00-repo-and-cargo-setup`           | ✅ Completed                                                                                                                     |
+| `01-ci-pipeline`                    | ✅ Completed                                                                                                                     |
+| `02-sdl3-window-on-android-and-ios` | ✅ Android (Pixel 8 emu) + ✅ iOS (iPhone 17 Pro Max) + sim via SDL_Renderer                                                     |
+| `03-vnode-and-vnode-macro`          | ✅ Completed                                                                                                                     |
+| `04-widget-arena`                   | ✅ Completed                                                                                                                     |
+| `05-command-buffer`                 | ✅ Completed                                                                                                                     |
+| `06-dirty-tracker-per-subtree`      | ✅ Completed                                                                                                                     |
+| `07-ui-context`                     | ✅ Completed                                                                                                                     |
+| `08-gesture-recognizer`             | ✅ Completed                                                                                                                     |
+| `09-gpu-renderer-rect-and-text`     | ✅ Batcher + scaffolding · ⚠️ Device demo pending                                                                                |
+| `10-taffy-layout-engine`            | ✅ `LayoutEngine` + window-smoke layout demo (canvas fallback paints; GPU path logs)                                             |
+| `11-xml-parser`                     | ✅ `parse::{XmlParser, ParseError}` (roxmltree); host-tested; `vnode!` ≡ XML output                                              |
 | `12-asset-loader-and-dpi`           | ✅ Trait + host + Android (`AAssetManager` via JNI) + iOS (`NSBundle.mainBundle` via objc2) + `DpiScale` + orientation re-layout |
-| `13-component-trait-and-prop-utils` | ⏭ Next                                                                              |
-| `14`–`34`                           | ⏳ Not started                                                                       |
+| `13-component-trait-and-prop-utils` | ✅ Component trait (build + lifecycle hooks) + `PropUtils` (Color, Dimension, bindings) — 33 new host tests                       |
+| `14-component-registry`             | ⏭ Next                                                                                                                          |
+| `15`–`34`                           | ⏳ Not started                                                                                                                   |
 
 Each completed todo gets a `**Status:**` line near the top of its file and a row flipped above.

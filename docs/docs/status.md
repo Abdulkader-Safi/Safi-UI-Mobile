@@ -1,9 +1,9 @@
 # Implementation Status
 
-**Last updated:** May 2026 — todos `00`–`12` complete. Source of truth: [`PRD.md`](https://github.com/Abdulkader-Safi/Safi-UI-Mobile/blob/main/PRD.md) v2.3.
+**Last updated:** May 2026 — todos `00`–`13` complete. Source of truth: [`PRD.md`](https://github.com/Abdulkader-Safi/Safi-UI-Mobile/blob/main/PRD.md) v2.3.
 
-:::tip Phase 2 complete — AssetLoader + DPI shipped end-to-end
-Todo 12 lands the full `AssetLoader` stack: real `AndroidAssetLoader` (`AAssetManager` via NDK + JNI) and real `IosAssetLoader` (`NSBundle.mainBundle` via objc2), plus host `FilesystemAssetLoader`, `MockAssetLoader`, and `DpiScale` resolved from `SDL_GetDisplayContentScale` at `App::run` startup. Orientation changes trigger re-layout. Next up: todo 13 (`Component` trait lifecycle hooks + `PropUtils`).
+:::tip Phase 3 starting — Component trait + PropUtils landed
+Todo 13 expands the `Component` trait with the full lifecycle surface (`build`, `on_mount`, `on_unmount`, `on_layout` per PRD §6.8) and ships `safi_ui::props` — typed prop parsing for colors (`#RGB`, `#RRGGBB`, `#AARRGGBB`, `rgb(...)`, `rgba(...)`, named), dimensions (`dp`, `%`, `auto`), and `{{key}}` binding resolution with composite templates and missing-key-to-empty-string semantics. Next up: todo 14 (`ComponentRegistry`).
 :::
 
 ## Overall
@@ -13,7 +13,7 @@ Todo 12 lands the full `AssetLoader` stack: real `AndroidAssetLoader` (`AAssetMa
 | Phase 0 | Foundations        | Wk 1–2   | ✅ Complete (00–03)                              |
 | Phase 1 | Core Engine        | Wk 3–6   | ✅ Mostly complete (04–09; device demo deferred) |
 | Phase 2 | Layout + Parse     | Wk 7–9   | ✅ Complete (10 ✅ 11 ✅ 12 ✅)                  |
-| Phase 3 | Component Registry | Wk 10–12 | Not started                                      |
+| Phase 3 | Component Registry | Wk 10–12 | In progress (13 ✅ · 14–16 pending)              |
 | Phase 4 | Component Library  | Wk 13–18 | Not started                                      |
 | Phase 5 | State + Events     | Wk 19–21 | Not started                                      |
 | Phase 6 | Platform Polish    | Wk 22–24 | Not started                                      |
@@ -33,8 +33,8 @@ Todo 12 lands the full `AssetLoader` stack: real `AndroidAssetLoader` (`AAssetMa
 | `DirtyTracker`      | [API](/api/core/dirty-tracker), per-subtree | ✅ Shipped                                      |
 | `StateStore`        | [API](/api/core/state-store)                | WIP                                             |
 | `EventBus`          | [API](/api/core/event-bus)                  | WIP                                             |
-| `PropUtils`         | [API](/api/core/prop-utils)                 | WIP (todo 13)                                   |
-| `Component` trait   | [API](/api/core/component-trait)            | Partial (lifecycle hooks in todo 13)            |
+| `PropUtils`         | [API](/api/core/prop-utils)                 | ✅ Shipped (todo 13)                            |
+| `Component` trait   | [API](/api/core/component-trait)            | ✅ Shipped (full §6.8 surface, todo 13)         |
 | `GestureRecognizer` | [API](/api/core/gesture-recognizer)         | ✅ Shipped                                      |
 | `GpuRenderer`       | SDL_GPU command submission + batching       | Partial (batcher ✅; device demo pending)       |
 | `FontAtlas`         | fontdue + rustybuzz                         | WIP                                             |

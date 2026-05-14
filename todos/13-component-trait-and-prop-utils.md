@@ -3,6 +3,20 @@
 **Phase:** 3 — Component Registry
 **PRD refs:** §6.8, §6.14, §6.12 (binding rules)
 
+**Status:** ✅ Complete — `Component` trait now carries the full §6.8
+surface (`bounds`, `build`, `hit_test`, `on_gesture`, `on_mount`,
+`on_unmount`, `on_layout`) with default no-op impls so the trait stays
+incrementally adoptable. Deliberately **no `Send + Sync` bound**.
+`safi-ui::props::{Color, Dimension, PropsExt, BindingSource,
+resolve_composite, resolve_composite_with_keys, parse_color_str,
+parse_dim_str}` ships. Color parses `#RGB`, `#RRGGBB`, `#AARRGGBB`,
+`rgb(...)`, `rgba(...)`, and a named-color set (including
+`transparent`, `white`, `black`, `red`, `gray`/`grey`, etc.). Dimension
+parses `dp`, `%`, and `auto`. Missing-key bindings collapse to empty
+string (PRD §6.12); composite bindings return both the resolved string
+and the key set the template touched so `DirtyTracker` can subscribe
+the calling widget. 33 new host tests (26 props, 7 lifecycle).
+
 ## Goal
 
 The contract every widget implements, plus the prop-parsing helpers that keep components ergonomic and typed-defaulted.

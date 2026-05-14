@@ -20,6 +20,7 @@ pub mod gestures;
 pub mod gpu;
 pub mod layout;
 pub mod parse;
+pub mod props;
 pub mod vnode;
 
 #[cfg(feature = "runtime")]
