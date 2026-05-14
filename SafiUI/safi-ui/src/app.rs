@@ -26,8 +26,13 @@ use sdl3::video::Window;
 use taffy::{AvailableSpace, Size};
 
 use crate::assets::{AssetLoader, DpiScale};
+use crate::build::build_tree;
+use crate::commands::Command;
+use crate::context::UIContext;
 use crate::layout::LayoutEngine;
+use crate::registry::ComponentRegistry;
 use crate::vnode::{LayoutRect, VNode};
+use crate::widgets::register_builtins;
 
 const CLEAR_COLOR: Color = Color::RGB(0x0f, 0x0f, 0x1a);
 const DEFAULT_WINDOW_WIDTH: u32 = 480;
@@ -335,34 +340,37 @@ fn run_canvas_loop(
     asset_loader: Box<dyn AssetLoader>,
     build_root: &dyn Fn() -> VNode,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let _ = dpi_scale; // Consumed by UIContext once todo 13 wires the build path.
-
-    // Smoke-probe the asset loader: log whether the conventional
-    // `assets/ui/screens/` directory is reachable. Catches "the app
-    // shipped without its asset bundle" regressions before a user
-    // sees a blank screen.
     let probe = asset_loader.exists(crate::assets::SCREENS_DIR);
     log(&format!(
         "safi-ui::app: asset probe '{}' exists = {probe}",
         crate::assets::SCREENS_DIR,
     ));
-    // The loader is held here for the lifetime of the loop; todo 13
-    // (build path) and todo 17 (image pipeline) hand it to UIContext.
-    let _asset_loader = asset_loader;
+    let _asset_loader = asset_loader; // Held for todo 17 (image pipeline).
     log("safi-ui::app: entering frame loop (SDL_Renderer)");
 
     let mut canvas = prepare_canvas(window);
 
-    // Build the tree, lay it out against the *virtual* dp canvas, log the
-    // computed layout once for device verification. Future state-driven
-    // rebuilds will re-invoke `build_root` and `compute_if_dirty`; the
-    // static demo path only needs one pass.
+    // Build the tree, lay it out against the *virtual* dp canvas, log
+    // the computed layout once for device verification. State-driven
+    // rebuilds re-invoke `build_root` + `compute_if_dirty` once todo 23
+    // (StateStore) wires through.
     let mut tree = build_root();
     let mut layout = LayoutEngine::new();
     #[allow(clippy::cast_precision_loss)]
     let available = definite(LOGICAL_DP_WIDTH as f32, LOGICAL_DP_HEIGHT as f32);
     layout.compute(&mut tree, available);
     log_layout("safi-ui::app: layout", &tree);
+
+    // Register every built-in widget once; `register_builtins` is
+    // idempotent in the last-write-wins sense (the warning fires but
+    // is harmless).
+    let mut registry = ComponentRegistry::new();
+    register_builtins(&mut registry);
+    let mut ui_ctx = UIContext::new(
+        crate::commands::COMMAND_BUFFER_CAPACITY_DEFAULT,
+        dpi_scale.raw(),
+        crate::edge_insets::EdgeInsets::ZERO,
+    );
 
     let mut event_pump = sdl.event_pump()?;
     let mut frames_drawn: u32 = 0;
@@ -384,27 +392,21 @@ fn run_canvas_loop(
             layout_dirty = false;
         }
 
+        // Build pass: walk the VNode tree, resolve through the
+        // registry, emit Command sequence into ui_ctx.commands.
+        ui_ctx.commands.clear();
+        build_tree(&tree, &registry, &mut ui_ctx);
+
         canvas.set_draw_color(CLEAR_COLOR);
         canvas.clear();
-
-        for_each_node(&tree, &mut |n| {
-            let Some(color) = parse_hex_color(n.props.get("bg").map(String::as_str)) else {
-                return;
-            };
-            #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
-            let rect = sdl3::rect::Rect::new(
-                n.layout.x as i32,
-                n.layout.y as i32,
-                n.layout.width.max(0.0) as u32,
-                n.layout.height.max(0.0) as u32,
-            );
-            canvas.set_draw_color(color);
-            let _ = canvas.fill_rect(rect);
-        });
-
+        replay_commands(&mut canvas, &ui_ctx);
         canvas.present();
+
         if frames_drawn == 0 {
-            log("safi-ui::app: first frame presented");
+            log(&format!(
+                "safi-ui::app: first frame presented ({} commands)",
+                ui_ctx.commands.len()
+            ));
         }
         frames_drawn += 1;
     }
@@ -414,28 +416,62 @@ fn run_canvas_loop(
     Ok(())
 }
 
+/// Replay the typed [`Command`] sequence into the `SDL_Renderer` canvas.
+/// Rect / Border emit fill / outline calls; Text is a no-op until
+/// the font atlas lands (todo 16). Image / Shadow / Clip are
+/// likewise deferred to later todos.
+fn replay_commands(canvas: &mut sdl3::render::WindowCanvas, ctx: &UIContext) {
+    for cmd in ctx.commands.as_slice() {
+        match cmd {
+            Command::Rect { rect, color, .. } => {
+                let sdl_color = sdl3::pixels::Color::RGBA(color.r, color.g, color.b, color.a);
+                let r = layout_rect_to_sdl(*rect);
+                canvas.set_draw_color(sdl_color);
+                let _ = canvas.fill_rect(r);
+            }
+            Command::Border {
+                rect,
+                color,
+                thickness: _,
+                ..
+            } => {
+                // SDL_Renderer doesn't take a thickness — `draw_rect`
+                // is always 1px. Real thickness comes via SDL_GPU
+                // shader pipeline (todo 09 device demo). Until then
+                // the outline is single-pixel which is fine for
+                // DebugBox / ghost-variant Button on the smoke.
+                let sdl_color = sdl3::pixels::Color::RGBA(color.r, color.g, color.b, color.a);
+                let r = layout_rect_to_sdl(*rect);
+                canvas.set_draw_color(sdl_color);
+                let _ = canvas.draw_rect(r);
+            }
+            // Text rasterisation lands with the font atlas (todo 16).
+            // Until then, Text commands are emitted into the buffer
+            // (so the pipeline is verifiable in tests) and the
+            // renderer skips them.
+            Command::Text { .. }
+            | Command::Image { .. }
+            | Command::Shadow { .. }
+            | Command::Clip { .. }
+            | Command::ClipPop => {}
+        }
+    }
+}
+
+fn layout_rect_to_sdl(r: LayoutRect) -> sdl3::rect::Rect {
+    #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+    sdl3::rect::Rect::new(
+        r.x as i32,
+        r.y as i32,
+        r.width.max(0.0) as u32,
+        r.height.max(0.0) as u32,
+    )
+}
+
 fn definite(w: f32, h: f32) -> Size<AvailableSpace> {
     Size {
         width: AvailableSpace::Definite(w),
         height: AvailableSpace::Definite(h),
-    }
-}
-
-fn parse_hex_color(prop: Option<&str>) -> Option<Color> {
-    let raw = prop?.trim_start_matches('#');
-    if raw.len() != 6 {
-        return None;
-    }
-    let r = u8::from_str_radix(&raw[0..2], 16).ok()?;
-    let g = u8::from_str_radix(&raw[2..4], 16).ok()?;
-    let b = u8::from_str_radix(&raw[4..6], 16).ok()?;
-    Some(Color::RGB(r, g, b))
-}
-
-fn for_each_node(node: &VNode, f: &mut dyn FnMut(&VNode)) {
-    f(node);
-    for child in &node.children {
-        for_each_node(child, f);
     }
 }
 

@@ -9,6 +9,7 @@
 pub mod app;
 pub mod arena;
 pub mod assets;
+pub mod build;
 pub mod clip;
 pub mod commands;
 pub mod component;
