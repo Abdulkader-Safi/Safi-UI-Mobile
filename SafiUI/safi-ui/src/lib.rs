@@ -24,6 +24,7 @@ pub mod layout;
 pub mod parse;
 pub mod props;
 pub mod registry;
+pub mod text;
 pub mod vnode;
 pub mod widgets;
 

@@ -1,9 +1,16 @@
 # Implementation Status
 
-**Last updated:** May 2026 — todos `00`–`15` complete. Source of truth: [`PRD.md`](https://github.com/Abdulkader-Safi/Safi-UI-Mobile/blob/main/PRD.md) v2.3.
+**Last updated:** May 2026 — todos `00`–`16` complete. Source of truth: [`PRD.md`](https://github.com/Abdulkader-Safi/Safi-UI-Mobile/blob/main/PRD.md) v2.3.
 
-:::tip Phase 3 progressing — base widgets land, the framework can now render real XML
-Todos 13–15 close out the core authoring surface: full `Component` trait, `PropUtils` typed parsing, `ComponentRegistry` + `register_component!` macro, and the three foundational widgets (`View`, `Text`, `Button`) registered under every canonical tag. Apps can now write XML like `<Screen bg="#0f0f1a"><Column><Text value="Hello" size="24" color="#fff" /><Button label="Tap me" onPress="demo.tap" /></Column></Screen>` and the framework parses → resolves → builds → emits command-buffer entries. Next up: todo 16 (font atlas — `fontdue` + `rustybuzz`) so text actually renders.
+:::tip Framework is end-to-end usable — XML in, pixels out
+Todos 11–16 stack into a complete authoring + rendering pipeline:
+**parse** (XmlParser, todo 11) → **layout** (LayoutEngine, todo 10) →
+**resolve** (ComponentRegistry + register_component!, todo 14) →
+**build** (base widgets View/Text/Button, todo 15) → **paint** (build
+walker + replay_commands, todo 15 keystone) → **rasterize text**
+(FontAtlas + TextShaper via fontdue/rustybuzz, todo 16). End-user
+authoring surface: write XML for UI, Rust for logic, ship to Android
+and iOS. Next up: todo 17 (image pipeline — channel-based async decode).
 :::
 
 ## Overall
@@ -13,8 +20,8 @@ Todos 13–15 close out the core authoring surface: full `Component` trait, `Pro
 | Phase 0 | Foundations        | Wk 1–2   | ✅ Complete (00–03)                              |
 | Phase 1 | Core Engine        | Wk 3–6   | ✅ Mostly complete (04–09; device demo deferred) |
 | Phase 2 | Layout + Parse     | Wk 7–9   | ✅ Complete (10 ✅ 11 ✅ 12 ✅)                  |
-| Phase 3 | Component Registry | Wk 10–12 | In progress (13 ✅ 14 ✅ 15 ✅ · 16 pending)     |
-| Phase 4 | Component Library  | Wk 13–18 | Not started                                      |
+| Phase 3 | Component Registry | Wk 10–12 | ✅ Complete (13 ✅ 14 ✅ 15 ✅)                  |
+| Phase 4 | Component Library  | Wk 13–18 | In progress (16 ✅ · 17–22 pending)              |
 | Phase 5 | State + Events     | Wk 19–21 | Not started                                      |
 | Phase 6 | Platform Polish    | Wk 22–24 | Not started                                      |
 | Phase 7 | OSS Launch         | Wk 25–26 | Not started                                      |
@@ -37,7 +44,7 @@ Todos 13–15 close out the core authoring surface: full `Component` trait, `Pro
 | `Component` trait   | [API](/api/core/component-trait)            | ✅ Shipped (full §6.8 surface, todo 13)         |
 | `GestureRecognizer` | [API](/api/core/gesture-recognizer)         | ✅ Shipped                                      |
 | `GpuRenderer`       | SDL_GPU command submission + batching       | Partial (batcher ✅; device demo pending)       |
-| `FontAtlas`         | fontdue + rustybuzz                         | WIP                                             |
+| `FontAtlas`         | fontdue + rustybuzz                         | ✅ Shipped (todo 16; complex-script BiDi deferred) |
 | `ImageCache`        | LRU + channel-based decode signalling       | WIP                                             |
 | `AssetLoader`       | [API](/api/core/asset-loader)               | ✅ Shipped (host + Android + iOS, todo 12)      |
 | `DpiScale`          | [API](/api/core/asset-loader#dpi-scaling)   | ✅ Shipped (todo 12)                            |

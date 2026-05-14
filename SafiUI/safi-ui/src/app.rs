@@ -31,6 +31,7 @@ use crate::commands::Command;
 use crate::context::UIContext;
 use crate::layout::LayoutEngine;
 use crate::registry::ComponentRegistry;
+use crate::text::{FontAtlas, FontId, PositionedGlyph};
 use crate::vnode::{LayoutRect, VNode};
 use crate::widgets::register_builtins;
 
@@ -58,6 +59,10 @@ const LOGICAL_DP_HEIGHT: i32 = 800;
 /// `EventBus` here without breaking this surface.
 pub struct App {
     build_root: Box<dyn Fn() -> VNode>,
+    /// Optional font bytes (TTF/OTF) registered into the runtime's
+    /// [`FontAtlas`] before the first frame. Without a font,
+    /// `Command::Text` is skipped at paint time — rects still render.
+    font_bytes: Option<Vec<u8>>,
 }
 
 impl App {
@@ -71,7 +76,21 @@ impl App {
     {
         Self {
             build_root: Box::new(build_root),
+            font_bytes: None,
         }
+    }
+
+    /// Register a TTF/OTF font for the runtime's [`FontAtlas`]. The
+    /// font becomes the default font for every `Command::Text`. Call
+    /// before [`App::run`].
+    ///
+    /// If no font is registered, text commands are emitted into the
+    /// command buffer (so tests still verify the pipeline) but the
+    /// host renderer skips them — rects still render normally.
+    #[must_use]
+    pub fn with_font_bytes(mut self, bytes: impl Into<Vec<u8>>) -> Self {
+        self.font_bytes = Some(bytes.into());
+        self
     }
 
     /// Drive the app: open a window, lay out the root tree, paint each
@@ -121,7 +140,33 @@ impl App {
             )),
         }
 
-        run_canvas_loop(&sdl, window, dpi_scale, asset_loader, &*self.build_root)
+        // PRD §7.1 — build the font atlas. Apps that didn't call
+        // `with_font_bytes` get an empty atlas; text commands are
+        // suppressed at paint time in that case.
+        let mut font_atlas = FontAtlas::new();
+        if let Some(bytes) = &self.font_bytes {
+            match font_atlas.register(bytes) {
+                Ok(id) => log(&format!(
+                    "safi-ui::app: font registered ({:?}, {} bytes)",
+                    id,
+                    bytes.len()
+                )),
+                Err(e) => log(&format!(
+                    "safi-ui::app: font registration failed ({e}); text suppressed"
+                )),
+            }
+        } else {
+            log("safi-ui::app: no font provided; text rendering suppressed");
+        }
+
+        run_canvas_loop(
+            &sdl,
+            window,
+            dpi_scale,
+            asset_loader.as_ref(),
+            &font_atlas,
+            &*self.build_root,
+        )
     }
 }
 
@@ -337,7 +382,8 @@ fn run_canvas_loop(
     sdl: &sdl3::Sdl,
     window: Window,
     dpi_scale: DpiScale,
-    asset_loader: Box<dyn AssetLoader>,
+    asset_loader: &dyn AssetLoader,
+    font_atlas: &FontAtlas,
     build_root: &dyn Fn() -> VNode,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let probe = asset_loader.exists(crate::assets::SCREENS_DIR);
@@ -345,7 +391,8 @@ fn run_canvas_loop(
         "safi-ui::app: asset probe '{}' exists = {probe}",
         crate::assets::SCREENS_DIR,
     ));
-    let _asset_loader = asset_loader; // Held for todo 17 (image pipeline).
+    // `asset_loader` borrow is held for the lifetime of the loop;
+    // todo 17 (image pipeline) reads from it inside the build path.
     log("safi-ui::app: entering frame loop (SDL_Renderer)");
 
     let mut canvas = prepare_canvas(window);
@@ -399,7 +446,7 @@ fn run_canvas_loop(
 
         canvas.set_draw_color(CLEAR_COLOR);
         canvas.clear();
-        replay_commands(&mut canvas, &ui_ctx);
+        replay_commands(&mut canvas, &ui_ctx, font_atlas);
         canvas.present();
 
         if frames_drawn == 0 {
@@ -416,11 +463,15 @@ fn run_canvas_loop(
     Ok(())
 }
 
-/// Replay the typed [`Command`] sequence into the `SDL_Renderer` canvas.
-/// Rect / Border emit fill / outline calls; Text is a no-op until
-/// the font atlas lands (todo 16). Image / Shadow / Clip are
-/// likewise deferred to later todos.
-fn replay_commands(canvas: &mut sdl3::render::WindowCanvas, ctx: &UIContext) {
+/// Replay the typed [`Command`] sequence into the `SDL_Renderer`
+/// canvas. Rect / Border emit fill / outline calls; Text shapes +
+/// rasterizes via `font_atlas` and blits as per-pixel alpha-tinted
+/// rects. Image / Shadow / Clip are deferred to their own todos.
+fn replay_commands(
+    canvas: &mut sdl3::render::WindowCanvas,
+    ctx: &UIContext,
+    font_atlas: &FontAtlas,
+) {
     for cmd in ctx.commands.as_slice() {
         match cmd {
             Command::Rect { rect, color, .. } => {
@@ -435,25 +486,74 @@ fn replay_commands(canvas: &mut sdl3::render::WindowCanvas, ctx: &UIContext) {
                 thickness: _,
                 ..
             } => {
-                // SDL_Renderer doesn't take a thickness — `draw_rect`
-                // is always 1px. Real thickness comes via SDL_GPU
-                // shader pipeline (todo 09 device demo). Until then
-                // the outline is single-pixel which is fine for
-                // DebugBox / ghost-variant Button on the smoke.
                 let sdl_color = sdl3::pixels::Color::RGBA(color.r, color.g, color.b, color.a);
                 let r = layout_rect_to_sdl(*rect);
                 canvas.set_draw_color(sdl_color);
                 let _ = canvas.draw_rect(r);
             }
-            // Text rasterisation lands with the font atlas (todo 16).
-            // Until then, Text commands are emitted into the buffer
-            // (so the pipeline is verifiable in tests) and the
-            // renderer skips them.
-            Command::Text { .. }
-            | Command::Image { .. }
+            Command::Text {
+                pos,
+                text,
+                font,
+                size,
+                color,
+            } => {
+                if font_atlas.font_count() == 0 {
+                    continue;
+                }
+                let font_id = FontId::from(*font);
+                let glyphs = font_atlas.shape_and_rasterize(font_id, text, *size, pos.x, pos.y);
+                blit_glyphs(canvas, *color, &glyphs);
+            }
+            Command::Image { .. }
             | Command::Shadow { .. }
             | Command::Clip { .. }
             | Command::ClipPop => {}
+        }
+    }
+}
+
+/// Blit each grayscale-alpha glyph bitmap into the canvas, tinting
+/// the alpha by the text colour. This is the `SDL_Renderer` path —
+/// each glyph pixel becomes a 1×1 `fill_rect` with the appropriate
+/// alpha. The `SDL_GPU` shader path (todo 09 device demo) packs the
+/// atlas into a single texture and submits one quad per glyph;
+/// per-pixel `fill_rect` is the smoke approximation until the shader
+/// pipeline lands.
+#[allow(
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+    clippy::cast_possible_wrap
+)]
+fn blit_glyphs(
+    canvas: &mut sdl3::render::WindowCanvas,
+    color: crate::commands::Color,
+    glyphs: &[PositionedGlyph],
+) {
+    canvas.set_blend_mode(sdl3::render::BlendMode::Blend);
+    for g in glyphs {
+        let width = g.glyph.width;
+        let height = g.glyph.height;
+        for row in 0..height {
+            for col in 0..width {
+                let alpha_src = g.glyph.pixels[row * width + col];
+                if alpha_src == 0 {
+                    continue;
+                }
+                let final_alpha = ((u32::from(color.a) * u32::from(alpha_src)) / 255) as u8;
+                if final_alpha == 0 {
+                    continue;
+                }
+                canvas.set_draw_color(sdl3::pixels::Color::RGBA(
+                    color.r,
+                    color.g,
+                    color.b,
+                    final_alpha,
+                ));
+                let x_i32 = (g.x as i32).saturating_add(col as i32);
+                let y_i32 = (g.y as i32).saturating_add(row as i32);
+                let _ = canvas.fill_rect(sdl3::rect::Rect::new(x_i32, y_i32, 1, 1));
+            }
         }
     }
 }
