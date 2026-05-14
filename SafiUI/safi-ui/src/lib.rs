@@ -13,6 +13,7 @@ pub mod clip;
 pub mod commands;
 pub mod component;
 pub mod context;
+pub mod debug_box;
 pub mod dirty;
 pub mod edge_insets;
 pub mod focus;
@@ -21,6 +22,7 @@ pub mod gpu;
 pub mod layout;
 pub mod parse;
 pub mod props;
+pub mod registry;
 pub mod vnode;
 
 #[cfg(feature = "runtime")]

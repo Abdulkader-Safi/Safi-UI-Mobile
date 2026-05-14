@@ -46,7 +46,8 @@ Work sequentially unless a todo is explicitly marked parallelisable. Don't skip 
 | `11-xml-parser`                     | ✅ `parse::{XmlParser, ParseError}` (roxmltree); host-tested; `vnode!` ≡ XML output                                              |
 | `12-asset-loader-and-dpi`           | ✅ Trait + host + Android (`AAssetManager` via JNI) + iOS (`NSBundle.mainBundle` via objc2) + `DpiScale` + orientation re-layout |
 | `13-component-trait-and-prop-utils` | ✅ Component trait (build + lifecycle hooks) + `PropUtils` (Color, Dimension, bindings) — 33 new host tests                       |
-| `14-component-registry`             | ⏭ Next                                                                                                                          |
-| `15`–`34`                           | ⏳ Not started                                                                                                                   |
+| `14-component-registry`             | ✅ `ComponentRegistry` + `register_component!` macro + `DebugBox` fallback — 7 new host tests                                     |
+| `15-base-widgets-view-text-button`  | ⏭ Next                                                                                                                          |
+| `16`–`34`                           | ⏳ Not started                                                                                                                   |
 
 Each completed todo gets a `**Status:**` line near the top of its file and a row flipped above.

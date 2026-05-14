@@ -1,9 +1,9 @@
 # Implementation Status
 
-**Last updated:** May 2026 — todos `00`–`13` complete. Source of truth: [`PRD.md`](https://github.com/Abdulkader-Safi/Safi-UI-Mobile/blob/main/PRD.md) v2.3.
+**Last updated:** May 2026 — todos `00`–`14` complete. Source of truth: [`PRD.md`](https://github.com/Abdulkader-Safi/Safi-UI-Mobile/blob/main/PRD.md) v2.3.
 
-:::tip Phase 3 starting — Component trait + PropUtils landed
-Todo 13 expands the `Component` trait with the full lifecycle surface (`build`, `on_mount`, `on_unmount`, `on_layout` per PRD §6.8) and ships `safi_ui::props` — typed prop parsing for colors (`#RGB`, `#RRGGBB`, `#AARRGGBB`, `rgb(...)`, `rgba(...)`, named), dimensions (`dp`, `%`, `auto`), and `{{key}}` binding resolution with composite templates and missing-key-to-empty-string semantics. Next up: todo 14 (`ComponentRegistry`).
+:::tip Phase 3 progressing — Component trait + PropUtils + Registry landed
+Todo 13 ships the full `Component` trait + `PropUtils` (typed prop parsing + `{{key}}` bindings). Todo 14 lands `ComponentRegistry` (lazy `OnceLock` singleton, mutex-guarded), the `register_component!` macro, and `DebugBox` fallback for unknown tags. Resolution order per PRD §5.4 implemented: registered Rust factory → `DebugBox` (the XML-template middle layer wires in with todo 27). Next up: todo 15 (base widgets — `View`, `Text`, `Button`).
 :::
 
 ## Overall
@@ -13,7 +13,7 @@ Todo 13 expands the `Component` trait with the full lifecycle surface (`build`, 
 | Phase 0 | Foundations        | Wk 1–2   | ✅ Complete (00–03)                              |
 | Phase 1 | Core Engine        | Wk 3–6   | ✅ Mostly complete (04–09; device demo deferred) |
 | Phase 2 | Layout + Parse     | Wk 7–9   | ✅ Complete (10 ✅ 11 ✅ 12 ✅)                  |
-| Phase 3 | Component Registry | Wk 10–12 | In progress (13 ✅ · 14–16 pending)              |
+| Phase 3 | Component Registry | Wk 10–12 | In progress (13 ✅ 14 ✅ · 15–16 pending)        |
 | Phase 4 | Component Library  | Wk 13–18 | Not started                                      |
 | Phase 5 | State + Events     | Wk 19–21 | Not started                                      |
 | Phase 6 | Platform Polish    | Wk 22–24 | Not started                                      |

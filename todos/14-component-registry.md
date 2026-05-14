@@ -3,6 +3,17 @@
 **Phase:** 3 — Component Registry
 **PRD refs:** §5.4, §6.7, §11.2
 
+**Status:** ✅ Complete — `safi-ui::registry::{ComponentRegistry,
+ComponentFactory}` shipped with the `register_component!` declarative
+macro and `safi-ui::debug_box::DebugBox` fallback widget. Registry is
+mutex-guarded singleton via `ComponentRegistry::global()` (lazy
+`OnceLock`); tests use `ComponentRegistry::new()` for isolation.
+Resolution falls through to `DebugBox` (red 1dp outline + `<TagName>`
+text) for any unknown tag. The middle layer (XML template lookup) is
+left to callers that own both the registry and `XmlTemplateLoader`
+when todo 27 lands. Duplicate registrations log once to stderr and
+last-write-wins per PRD §6.7. 7 host tests cover the contract.
+
 ## Goal
 
 Map XML tag names to component factories with the three-step fallback chain.
