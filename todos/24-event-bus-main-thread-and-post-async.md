@@ -3,6 +3,23 @@
 **Phase:** 5 — State + Events
 **PRD refs:** §6.11, §8.4, §6.12 (background-thread state pattern)
 
+**Status:** ✅ Complete — `safi-ui::events::EventBus` with main-thread
+`on(name, handler) -> HandlerId`, `emit(name)`, `off(name, id)`,
+plus the cross-thread `post_async(name)` MPSC ingress and
+frame-loop `drain_async() -> usize` helper. Process-wide singleton
+via `EventBus::global()` (lazy `OnceLock<Mutex<EventBus>>`); tests
+use `EventBus::new()` for isolation. `App::run` now hit-tests
+`SDL_EVENT_FINGER_UP` against the VNode tree, finds the deepest
+`onPress`-carrying node, and emits via the global bus. Workers
+post via `bus.async_sender().send(name)` and the bus drains every
+frame in FIFO order. 10 host tests cover the contract end-to-end
+including 8-thread concurrent post.
+
+**Deferred:** dependency declared on todo 23 (StateStore) in the
+original spec is loose — the EventBus has no functional coupling
+to StateStore. Background-thread state-update pattern (PRD §6.12)
+will be documented when StateStore lands.
+
 ## Goal
 
 Named publish/subscribe bus for the main thread with a safe cross-thread ingress.

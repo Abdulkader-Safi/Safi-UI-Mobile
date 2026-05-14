@@ -29,6 +29,7 @@ use crate::assets::{AssetLoader, DpiScale};
 use crate::build::build_tree;
 use crate::commands::Command;
 use crate::context::UIContext;
+use crate::events::EventBus;
 use crate::layout::LayoutEngine;
 use crate::registry::ComponentRegistry;
 use crate::text::{FontAtlas, FontId, PositionedGlyph};
@@ -258,11 +259,17 @@ fn probe_gpu(window: &Window) -> Result<String, sdl3::Error> {
 enum EventOutcome {
     Continue,
     Reflow,
+    /// User tap at virtual logical coords. The frame loop dispatches
+    /// onPress via the [`EventBus`].
+    Tap {
+        x: f32,
+        y: f32,
+    },
     Terminate,
 }
 
-/// Dispatch one SDL3 event. Returns whether the loop should exit or
-/// re-run layout on the next tick.
+/// Dispatch one SDL3 event. Returns whether the loop should exit,
+/// re-run layout, or dispatch a user tap on the next tick.
 fn handle_event(event: &Event) -> EventOutcome {
     match event {
         Event::Quit { .. } => {
@@ -305,8 +312,37 @@ fn handle_event(event: &Event) -> EventOutcome {
             log("safi-ui::app: SDL_EVENT_DISPLAY_ORIENTATION (re-layout)");
             EventOutcome::Reflow
         }
+        // PRD §6.9 — finger down maps to a Tap gesture. We use the
+        // *up* edge (`FingerUp`) for the click semantics so dragging
+        // off the button without releasing doesn't fire `onPress`.
+        // SDL3's finger events report `x`/`y` already normalised to
+        // the logical render presentation we pinned in `prepare_canvas`
+        // (480×800 dp).
+        Event::FingerUp { x, y, .. } => EventOutcome::Tap { x: *x, y: *y },
         _ => EventOutcome::Continue,
     }
+}
+
+/// Walk the `VNode` tree and find the deepest leaf whose `layout`
+/// contains `(x, y)` and that carries an `onPress` prop. Returns the
+/// event name to emit, or `None` if the tap missed every interactive
+/// surface. Children paint on top of parents, so a deeper hit wins.
+fn dispatch_tap(tree: &VNode, x: f32, y: f32) -> Option<String> {
+    // Depth-first reverse walk so the visually-on-top child wins.
+    for child in tree.children.iter().rev() {
+        if let Some(hit) = dispatch_tap(child, x, y) {
+            return Some(hit);
+        }
+    }
+    let r = tree.layout;
+    if x >= r.x && x < r.x + r.width && y >= r.y && y < r.y + r.height {
+        if let Some(on_press) = tree.props.get("onPress") {
+            if !on_press.is_empty() {
+                return Some(on_press.clone());
+            }
+        }
+    }
+    None
 }
 
 fn prepare_canvas(window: Window) -> sdl3::render::WindowCanvas {
@@ -422,12 +458,14 @@ fn run_canvas_loop(
     let mut event_pump = sdl.event_pump()?;
     let mut frames_drawn: u32 = 0;
     let mut layout_dirty = false;
+    let mut pending_taps: Vec<(f32, f32)> = Vec::new();
 
     'frame: loop {
         for event in event_pump.poll_iter() {
             match handle_event(&event) {
                 EventOutcome::Terminate => break 'frame,
                 EventOutcome::Reflow => layout_dirty = true,
+                EventOutcome::Tap { x, y } => pending_taps.push((x, y)),
                 EventOutcome::Continue => {}
             }
         }
@@ -437,6 +475,32 @@ fn run_canvas_loop(
             layout.compute(&mut tree, available);
             log_layout("safi-ui::app: layout (post-reflow)", &tree);
             layout_dirty = false;
+        }
+
+        // Drain pending taps: hit-test the current tree, look up
+        // each tap's `onPress` event, and emit through the bus.
+        // SDL3 finger coords are already in our 480×800 dp logical
+        // space (set by `SDL_SetRenderLogicalPresentation`), so we
+        // scale by LOGICAL_*_WIDTH to match VNode.layout values.
+        #[allow(clippy::cast_precision_loss)]
+        let logical_w = LOGICAL_DP_WIDTH as f32;
+        #[allow(clippy::cast_precision_loss)]
+        let logical_h = LOGICAL_DP_HEIGHT as f32;
+        for (nx, ny) in pending_taps.drain(..) {
+            let px = nx * logical_w;
+            let py = ny * logical_h;
+            if let Some(name) = dispatch_tap(&tree, px, py) {
+                log(&format!(
+                    "safi-ui::app: tap at ({px:.0},{py:.0}) → emit '{name}'"
+                ));
+                EventBus::global().emit(&name);
+            }
+        }
+
+        // Drain async events posted from worker threads.
+        let drained = EventBus::global().drain_async();
+        if drained > 0 {
+            log(&format!("safi-ui::app: drained {drained} async events"));
         }
 
         // Build pass: walk the VNode tree, resolve through the

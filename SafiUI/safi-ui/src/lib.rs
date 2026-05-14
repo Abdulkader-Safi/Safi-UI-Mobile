@@ -17,6 +17,7 @@ pub mod context;
 pub mod debug_box;
 pub mod dirty;
 pub mod edge_insets;
+pub mod events;
 pub mod focus;
 pub mod gestures;
 pub mod gpu;

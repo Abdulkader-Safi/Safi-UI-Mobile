@@ -1,6 +1,6 @@
 # Implementation Status
 
-**Last updated:** May 2026 — todos `00`–`16` complete. Source of truth: [`PRD.md`](https://github.com/Abdulkader-Safi/Safi-UI-Mobile/blob/main/PRD.md) v2.3.
+**Last updated:** May 2026 — todos `00`–`16` + `24` complete. Source of truth: [`PRD.md`](https://github.com/Abdulkader-Safi/Safi-UI-Mobile/blob/main/PRD.md) v2.3.
 
 :::tip Framework is end-to-end usable — XML in, pixels out
 Todos 11–16 stack into a complete authoring + rendering pipeline:
@@ -38,8 +38,8 @@ and iOS. Next up: todo 17 (image pipeline — channel-based async decode).
 | `UIContext`         | [API](/api/core/ui-context)                 | ✅ Shipped                                      |
 | `CommandBuffer`     | [API](/api/core/command-buffer)             | ✅ Shipped                                      |
 | `DirtyTracker`      | [API](/api/core/dirty-tracker), per-subtree | ✅ Shipped                                      |
-| `StateStore`        | [API](/api/core/state-store)                | WIP                                             |
-| `EventBus`          | [API](/api/core/event-bus)                  | WIP                                             |
+| `StateStore`        | [API](/api/core/state-store)                | WIP (todo 23)                                   |
+| `EventBus`          | [API](/api/core/event-bus)                  | ✅ Shipped (todo 24) — main + post_async        |
 | `PropUtils`         | [API](/api/core/prop-utils)                 | ✅ Shipped (todo 13)                            |
 | `Component` trait   | [API](/api/core/component-trait)            | ✅ Shipped (full §6.8 surface, todo 13)         |
 | `GestureRecognizer` | [API](/api/core/gesture-recognizer)         | ✅ Shipped                                      |
