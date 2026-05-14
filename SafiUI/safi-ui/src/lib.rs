@@ -24,6 +24,7 @@ pub mod parse;
 pub mod props;
 pub mod registry;
 pub mod vnode;
+pub mod widgets;
 
 #[cfg(feature = "runtime")]
 pub use app::App;
