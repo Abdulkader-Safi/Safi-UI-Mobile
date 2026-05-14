@@ -1,0 +1,99 @@
+<Screen bg="#0f0f1a" safeArea="true">
+  <NavBar
+        title="Dashboard"
+        bg="#1a1a2e"
+        titleColor="#fff"
+        rightAction="nav.settings"
+    />
+  <ScrollView id="main-scroll" flex="1" padding="16">
+    <UserCard
+            name="{{user.name}}"
+            avatar="{{user.avatar}}"
+            role="{{user.role}}"
+            onPress="nav.profile"
+        />
+    <Spacer size="16" />
+    <Row gap="12" justify="spaceBetween">
+      <Card flex="1" bg="#1e1e2e" padding="16" radius="12">
+        <Label color="#4F8EF7">PROJECTS</Label>
+        <Heading level="2" color="#fff">{{stats.projects}}</Heading>
+      </Card>
+      <Card flex="1" bg="#1e1e2e" padding="16" radius="12">
+        <Label color="#27AE60">CLIENTS</Label>
+        <Heading level="2" color="#fff">{{stats.clients}}</Heading>
+      </Card>
+    </Row>
+    <Spacer size="16" />
+    <Text size="18" weight="bold" color="#fff">Recent Projects</Text>
+    <Spacer size="8" />
+    <FlatList
+            id="projects-list"
+            data="projects.recent"
+            renderItem="ProjectCard"
+            keyExtractor="id"
+            separator="8"
+        />
+    <Column gap="8">
+      <Row gap="8">
+        <Avatar src="a.png" size="32" />
+        <Column flex="1">
+          <Text size="14" color="#fff">Alpha</Text>
+          <Text size="12" color="#888">edited 2d ago</Text>
+        </Column>
+        <Badge text="DRAFT" color="#fff" bg="#888" />
+      </Row>
+      <Row gap="8">
+        <Avatar src="b.png" size="32" />
+        <Column flex="1">
+          <Text size="14" color="#fff">Beta</Text>
+          <Text size="12" color="#888">edited 5h ago</Text>
+        </Column>
+        <Badge text="LIVE" color="#fff" bg="#27AE60" />
+      </Row>
+      <Row gap="8">
+        <Avatar src="c.png" size="32" />
+        <Column flex="1">
+          <Text size="14" color="#fff">Gamma</Text>
+          <Text size="12" color="#888">edited 1m ago</Text>
+        </Column>
+        <Badge text="LIVE" color="#fff" bg="#27AE60" />
+      </Row>
+      <Row gap="8">
+        <Avatar src="d.png" size="32" />
+        <Column flex="1">
+          <Text size="14" color="#fff">Delta</Text>
+          <Text size="12" color="#888">edited 3w ago</Text>
+        </Column>
+        <Badge text="DRAFT" color="#fff" bg="#888" />
+      </Row>
+      <Row gap="8">
+        <Avatar src="e.png" size="32" />
+        <Column flex="1">
+          <Text size="14" color="#fff">Epsilon</Text>
+          <Text size="12" color="#888">edited 4h ago</Text>
+        </Column>
+        <Badge text="LIVE" color="#fff" bg="#27AE60" />
+      </Row>
+      <Row gap="8">
+        <Avatar src="f.png" size="32" />
+        <Column flex="1">
+          <Text size="14" color="#fff">Zeta</Text>
+          <Text size="12" color="#888">edited 1d ago</Text>
+        </Column>
+        <Badge text="ARCHIVED" color="#fff" bg="#444" />
+      </Row>
+    </Column>
+    <Spacer size="24" />
+    <Button
+            label="Log Out"
+            variant="ghost"
+            onPress="auth.logout"
+            color="#E74C3C"
+        />
+  </ScrollView>
+  <TabBar
+        activeTab="{{nav.activeTab}}"
+        onTabChange="nav.setTab"
+        tabs="home,projects,clients,settings"
+    />
+</Screen>

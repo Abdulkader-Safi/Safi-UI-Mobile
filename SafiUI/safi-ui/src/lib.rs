@@ -18,6 +18,7 @@ pub mod focus;
 pub mod gestures;
 pub mod gpu;
 pub mod layout;
+pub mod parse;
 pub mod vnode;
 
 #[cfg(feature = "runtime")]
