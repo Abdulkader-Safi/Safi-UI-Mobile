@@ -1,47 +1,48 @@
 # Implementation Status
 
-**Last updated:** May 2026 — todos `00` + `01` + `02` complete (workspace, CI, SDL3 smoke test). Source of truth: [`PRD.md`](https://github.com/Abdulkader-Safi/Safi-UI-Mobile/blob/main/PRD.md) v2.3.
+**Last updated:** May 2026 — todos `00`–`12` complete. Source of truth: [`PRD.md`](https://github.com/Abdulkader-Safi/Safi-UI-Mobile/blob/main/PRD.md) v2.3.
 
-:::info Phase 0 ¾ — SDL3 window opens on both platforms (code landed; device verification pending)
-SDL3 + `SDL_GPU` smoke test under `SafiUI/examples/window-smoke/` opens a Vulkan window on Android (`MainActivity : SDLActivity` + `cargo ndk`) and a Metal window on iOS (`WindowSmoke.xcodeproj` + static-linked SDL3). Host `cargo check` / `clippy` / `test` stay clean because sdl3 is gated behind `--features device-build`. The Rust + native scaffolding compiles; **the actual on-device confirmation (Vulkan driver string in Logcat, Metal driver string in Xcode console, lifecycle survives background/foreground) is pending the user's hardware run**.
+:::tip Phase 2 complete — AssetLoader + DPI shipped end-to-end
+Todo 12 lands the full `AssetLoader` stack: real `AndroidAssetLoader` (`AAssetManager` via NDK + JNI) and real `IosAssetLoader` (`NSBundle.mainBundle` via objc2), plus host `FilesystemAssetLoader`, `MockAssetLoader`, and `DpiScale` resolved from `SDL_GetDisplayContentScale` at `App::run` startup. Orientation changes trigger re-layout. Next up: todo 13 (`Component` trait lifecycle hooks + `PropUtils`).
 :::
 
 ## Overall
 
-| Phase   | Description        | Target   | Status                                 |
-| ------- | ------------------ | -------- | -------------------------------------- |
-| Phase 0 | Foundations        | Wk 1–2   | In progress (00 ✅ 01 ✅ 02 Android ✅ / iOS ⚠️) |
-| Phase 1 | Core Engine        | Wk 3–6   | Not started                            |
-| Phase 2 | Layout + Parse     | Wk 7–9   | Not started                            |
-| Phase 3 | Component Registry | Wk 10–12 | Not started                            |
-| Phase 4 | Component Library  | Wk 13–18 | Not started                            |
-| Phase 5 | State + Events     | Wk 19–21 | Not started                            |
-| Phase 6 | Platform Polish    | Wk 22–24 | Not started                            |
-| Phase 7 | OSS Launch         | Wk 25–26 | Not started                            |
-| Post-v1 | CLI (`safi`)       | v1.1     | Not started                            |
+| Phase   | Description        | Target   | Status                                           |
+| ------- | ------------------ | -------- | ------------------------------------------------ |
+| Phase 0 | Foundations        | Wk 1–2   | ✅ Complete (00–03)                              |
+| Phase 1 | Core Engine        | Wk 3–6   | ✅ Mostly complete (04–09; device demo deferred) |
+| Phase 2 | Layout + Parse     | Wk 7–9   | ✅ Complete (10 ✅ 11 ✅ 12 ✅)                  |
+| Phase 3 | Component Registry | Wk 10–12 | Not started                                      |
+| Phase 4 | Component Library  | Wk 13–18 | Not started                                      |
+| Phase 5 | State + Events     | Wk 19–21 | Not started                                      |
+| Phase 6 | Platform Polish    | Wk 22–24 | Not started                                      |
+| Phase 7 | OSS Launch         | Wk 25–26 | Not started                                      |
+| Post-v1 | CLI (`safi`)       | v1.1     | Not started                                      |
 
 ## Core systems
 
-| System              | Spec                                        | Status |
-| ------------------- | ------------------------------------------- | ------ |
-| `VNode`             | [API](/api/core/vnode)                      | WIP    |
-| `XmlParser`         | roxmltree-based                             | WIP    |
-| `LayoutEngine`      | Taffy integration                           | WIP    |
-| `WidgetArena`       | [API](/api/core/widget-arena)               | WIP    |
-| `UIContext`         | [API](/api/core/ui-context)                 | WIP    |
-| `CommandBuffer`     | [API](/api/core/command-buffer)             | WIP    |
-| `DirtyTracker`      | [API](/api/core/dirty-tracker), per-subtree | WIP    |
-| `StateStore`        | [API](/api/core/state-store)                | WIP    |
-| `EventBus`          | [API](/api/core/event-bus)                  | WIP    |
-| `PropUtils`         | [API](/api/core/prop-utils)                 | WIP    |
-| `Component` trait   | [API](/api/core/component-trait)            | WIP    |
-| `GestureRecognizer` | [API](/api/core/gesture-recognizer)         | WIP    |
-| `GpuRenderer`       | SDL_GPU command submission + batching       | WIP    |
-| `FontAtlas`         | fontdue + rustybuzz                         | WIP    |
-| `ImageCache`        | LRU + channel-based decode signalling       | WIP    |
-| `AssetLoader`       | AAssetManager + Bundle.main                 | WIP    |
-| `HotReloadWatcher`  | inotify / kqueue, dev-only                  | WIP    |
-| `vnode!` macro      | [API](/api/macros#vnode)                    | WIP    |
+| System              | Spec                                        | Status                                          |
+| ------------------- | ------------------------------------------- | ----------------------------------------------- |
+| `VNode`             | [API](/api/core/vnode)                      | ✅ Shipped                                      |
+| `XmlParser`         | roxmltree-based                             | ✅ Shipped (todo 11)                            |
+| `LayoutEngine`      | Taffy integration                           | ✅ Shipped (todo 10)                            |
+| `WidgetArena`       | [API](/api/core/widget-arena)               | ✅ Shipped                                      |
+| `UIContext`         | [API](/api/core/ui-context)                 | ✅ Shipped                                      |
+| `CommandBuffer`     | [API](/api/core/command-buffer)             | ✅ Shipped                                      |
+| `DirtyTracker`      | [API](/api/core/dirty-tracker), per-subtree | ✅ Shipped                                      |
+| `StateStore`        | [API](/api/core/state-store)                | WIP                                             |
+| `EventBus`          | [API](/api/core/event-bus)                  | WIP                                             |
+| `PropUtils`         | [API](/api/core/prop-utils)                 | WIP (todo 13)                                   |
+| `Component` trait   | [API](/api/core/component-trait)            | Partial (lifecycle hooks in todo 13)            |
+| `GestureRecognizer` | [API](/api/core/gesture-recognizer)         | ✅ Shipped                                      |
+| `GpuRenderer`       | SDL_GPU command submission + batching       | Partial (batcher ✅; device demo pending)       |
+| `FontAtlas`         | fontdue + rustybuzz                         | WIP                                             |
+| `ImageCache`        | LRU + channel-based decode signalling       | WIP                                             |
+| `AssetLoader`       | [API](/api/core/asset-loader)               | ✅ Shipped (host + Android + iOS, todo 12)      |
+| `DpiScale`          | [API](/api/core/asset-loader#dpi-scaling)   | ✅ Shipped (todo 12)                            |
+| `HotReloadWatcher`  | inotify / kqueue, dev-only                  | WIP                                             |
+| `vnode!` macro      | [API](/api/macros#vnode)                    | ✅ Shipped                                      |
 
 ## Built-in components (target: 30+)
 
@@ -56,11 +57,11 @@ SDL3 + `SDL_GPU` smoke test under `SafiUI/examples/window-smoke/` opens a Vulkan
 
 ## Platform support
 
-| Platform | Backend                  | Min version             | Status                            |
-| -------- | ------------------------ | ----------------------- | --------------------------------- |
-| Android  | Vulkan via SDL_GPU       | API 24 (NDK r25+)       | ✅ Verified on Pixel 8 emulator (Vulkan) |
+| Platform | Backend                  | Min version             | Status                                      |
+| -------- | ------------------------ | ----------------------- | ------------------------------------------- |
+| Android  | Vulkan via SDL_GPU       | API 24 (NDK r25+)       | ✅ Verified on Pixel 8 emulator (Vulkan)    |
 | iOS      | Metal via SDL_GPU        | iOS 16                  | Smoke test code landed ⚠️ needs real iPhone |
-| Desktop  | SDL3 host (preview only) | macOS / Linux / Windows | Planned for `safi preview` (v1.1) |
+| Desktop  | SDL3 host (preview only) | macOS / Linux / Windows | Planned for `safi preview` (v1.1)           |
 
 ## CLI commands (v1.1)
 

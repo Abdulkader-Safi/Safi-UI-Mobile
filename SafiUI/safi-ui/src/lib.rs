@@ -8,6 +8,7 @@
 #[cfg(feature = "runtime")]
 pub mod app;
 pub mod arena;
+pub mod assets;
 pub mod clip;
 pub mod commands;
 pub mod component;

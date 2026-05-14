@@ -3,6 +3,19 @@
 **Phase:** 2 — Layout + Parse
 **PRD refs:** §7.3, §9.3
 
+**Status:** ✅ Complete — `safi-ui::assets::{AssetLoader, AssetError,
+FilesystemAssetLoader, MockAssetLoader, AndroidAssetLoader,
+IosAssetLoader, DpiScale, SCREENS_DIR, COMPONENTS_DIR, IMAGES_DIR}`
+shipped with 16 host tests. `AndroidAssetLoader` wraps the NDK
+`AAssetManager` (constructed via `SDL_GetAndroidActivity` → JNI →
+`AAssetManager_fromJava`); `IosAssetLoader` wraps `NSBundle.mainBundle`
+via the `objc2` stack. `App::run` resolves `DpiScale` from
+`SDL_GetDisplayContentScale` at startup, picks the platform loader via
+`cfg(target_os)`, logs an asset-bundle probe, and re-runs
+`LayoutEngine::compute` on `SDL_EVENT_DISPLAY_ORIENTATION`.
+Pixel-identical render acceptance becomes meaningful with todo 17
+(image pipeline).
+
 ## Goal
 
 Unified asset access across Android `AAssetManager` and iOS `Bundle.main`, plus DP → physical pixel conversion at the renderer boundary.

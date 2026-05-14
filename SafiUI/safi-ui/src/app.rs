@@ -19,12 +19,13 @@
 
 use std::ffi::CStr;
 
-use sdl3::event::Event;
+use sdl3::event::{DisplayEvent, Event};
 use sdl3::gpu::{Device, ShaderFormat};
 use sdl3::pixels::Color;
 use sdl3::video::Window;
 use taffy::{AvailableSpace, Size};
 
+use crate::assets::{AssetLoader, DpiScale};
 use crate::layout::LayoutEngine;
 use crate::vnode::{LayoutRect, VNode};
 
@@ -37,10 +38,13 @@ const DEFAULT_WINDOW_HEIGHT: u32 = 800;
 /// regardless of what the OS reports for `window.size()` (iOS returns
 /// logical points, Android returns physical pixels, and we'd rather not
 /// branch on that). SDL3 stretches/letterboxes from this virtual surface
-/// to the actual backbuffer. Per PRD §7.3 the real engine will derive
-/// this from `SDL_GetDisplayContentScale` once an asset/DPI loader is
-/// wired in (todo 12); for the smoke this fixed pair is the simplest
-/// thing that gives both platforms the same picture.
+/// to the actual backbuffer.
+///
+/// The DPI scale that maps these dp units to physical pixels at the
+/// renderer boundary is resolved once at startup via
+/// [`DpiScale::from_sdl`] over `SDL_GetDisplayContentScale` (PRD §7.3).
+/// This module logs the resolved scale; it will be threaded into
+/// `UIContext.dpi_scale` once the build path lands (todo 13).
 const LOGICAL_DP_WIDTH: i32 = 480;
 const LOGICAL_DP_HEIGHT: i32 = 800;
 
@@ -83,6 +87,22 @@ impl App {
         let (ww, wh) = window.size();
         log(&format!("safi-ui::app: window {ww}x{wh}"));
 
+        // PRD §7.3 — resolve the primary display's content scale once at
+        // startup. Pixel 8 ≈ 2.625, iPhone 15 Pro = 3.0, desktop = 1.0.
+        // Bad / missing scale collapses to `DpiScale::ONE` rather than
+        // failing the boot — apps still want to render on hardware where
+        // SDL3 can't determine the value.
+        let dpi_scale = resolve_dpi_scale(&video);
+        log(&format!("safi-ui::app: dpi_scale = {:.3}", dpi_scale.raw()));
+
+        // PRD §9.3 — pick the platform asset loader. Each branch resolves to
+        // a `Box<dyn AssetLoader>` so the rest of the runtime ignores target_os.
+        let asset_loader = build_asset_loader();
+        log(&format!(
+            "safi-ui::app: asset_loader = {}",
+            asset_loader_label()
+        ));
+
         // Probe `SDL_GPU` so device verification still sees the driver name
         // (Vulkan / Metal) in logs, then drop it. Real rendering goes
         // through SDL_Renderer until the rect pipeline lands. See the
@@ -96,7 +116,65 @@ impl App {
             )),
         }
 
-        run_canvas_loop(&sdl, window, &*self.build_root)
+        run_canvas_loop(&sdl, window, dpi_scale, asset_loader, &*self.build_root)
+    }
+}
+
+#[cfg(target_os = "android")]
+fn build_asset_loader() -> Box<dyn AssetLoader> {
+    match crate::assets::AndroidAssetLoader::from_sdl_activity() {
+        Ok(loader) => Box::new(loader),
+        Err(e) => {
+            log(&format!(
+                "safi-ui::app: AndroidAssetLoader init failed ({e}); falling back to filesystem at '.'"
+            ));
+            Box::new(crate::assets::FilesystemAssetLoader::new("."))
+        }
+    }
+}
+
+#[cfg(target_os = "ios")]
+fn build_asset_loader() -> Box<dyn AssetLoader> {
+    Box::new(crate::assets::IosAssetLoader::new())
+}
+
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
+fn build_asset_loader() -> Box<dyn AssetLoader> {
+    Box::new(crate::assets::FilesystemAssetLoader::new("."))
+}
+
+#[cfg(target_os = "android")]
+fn asset_loader_label() -> &'static str {
+    "AndroidAssetLoader (AAssetManager via SDL Activity)"
+}
+
+#[cfg(target_os = "ios")]
+fn asset_loader_label() -> &'static str {
+    "IosAssetLoader (NSBundle.mainBundle)"
+}
+
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
+fn asset_loader_label() -> &'static str {
+    "FilesystemAssetLoader (host filesystem rooted at '.')"
+}
+
+fn resolve_dpi_scale(video: &sdl3::VideoSubsystem) -> DpiScale {
+    match video.get_primary_display() {
+        Ok(display) => match display.get_content_scale() {
+            Ok(raw) => DpiScale::from_sdl(raw),
+            Err(e) => {
+                log(&format!(
+                    "safi-ui::app: SDL_GetDisplayContentScale failed ({e}); defaulting to 1.0"
+                ));
+                DpiScale::ONE
+            }
+        },
+        Err(e) => {
+            log(&format!(
+                "safi-ui::app: no primary display ({e}); defaulting dpi_scale to 1.0"
+            ));
+            DpiScale::ONE
+        }
     }
 }
 
@@ -127,48 +205,61 @@ fn probe_gpu(window: &Window) -> Result<String, sdl3::Error> {
     Ok(driver)
 }
 
-/// Returns `true` when the event should terminate the loop.
-fn handle_event(event: &Event) -> bool {
+enum EventOutcome {
+    Continue,
+    Reflow,
+    Terminate,
+}
+
+/// Dispatch one SDL3 event. Returns whether the loop should exit or
+/// re-run layout on the next tick.
+fn handle_event(event: &Event) -> EventOutcome {
     match event {
         Event::Quit { .. } => {
             log("safi-ui::app: SDL_EVENT_QUIT");
-            true
+            EventOutcome::Terminate
         }
         Event::AppTerminating { .. } => {
             log("safi-ui::app: AppTerminating");
-            true
+            EventOutcome::Terminate
         }
         Event::AppLowMemory { .. } => {
             log("safi-ui::app: AppLowMemory");
-            false
+            EventOutcome::Continue
         }
         Event::AppWillEnterBackground { .. } => {
             log("safi-ui::app: AppWillEnterBackground");
-            false
+            EventOutcome::Continue
         }
         Event::AppDidEnterBackground { .. } => {
             log("safi-ui::app: AppDidEnterBackground");
-            false
+            EventOutcome::Continue
         }
         Event::AppWillEnterForeground { .. } => {
             log("safi-ui::app: AppWillEnterForeground");
-            false
+            EventOutcome::Continue
         }
         Event::AppDidEnterForeground { .. } => {
             log("safi-ui::app: AppDidEnterForeground");
-            false
+            EventOutcome::Continue
         }
-        _ => false,
+        // PRD §9.2 — orientation change re-runs layout against the new
+        // available size. The render-logical canvas stays pinned at
+        // 480×800 dp, so this is mostly a forward-compat hook today;
+        // once `App` accepts an `orientation` aware build_root (todo 27,
+        // platform bridge) the new size flows through here.
+        Event::Display {
+            display_event: DisplayEvent::Orientation(_),
+            ..
+        } => {
+            log("safi-ui::app: SDL_EVENT_DISPLAY_ORIENTATION (re-layout)");
+            EventOutcome::Reflow
+        }
+        _ => EventOutcome::Continue,
     }
 }
 
-fn run_canvas_loop(
-    sdl: &sdl3::Sdl,
-    window: Window,
-    build_root: &dyn Fn() -> VNode,
-) -> Result<(), Box<dyn std::error::Error>> {
-    log("safi-ui::app: entering frame loop (SDL_Renderer)");
-
+fn prepare_canvas(window: Window) -> sdl3::render::WindowCanvas {
     // Diagnostic: list every render driver SDL3 has compiled in, then —
     // only on iOS — force the software renderer because the simulator's
     // Metal SDL_Renderer doesn't actually present. On Android we want the
@@ -199,7 +290,7 @@ fn run_canvas_loop(
         "safi-ui::app: window.size() = {win_w}x{win_h} (platform-dependent units)"
     ));
 
-    let mut canvas = window.into_canvas();
+    let canvas = window.into_canvas();
 
     unsafe {
         let name_ptr = sdl3::sys::render::SDL_GetRendererName(canvas.raw());
@@ -234,6 +325,34 @@ fn run_canvas_loop(
         ));
     }
 
+    canvas
+}
+
+fn run_canvas_loop(
+    sdl: &sdl3::Sdl,
+    window: Window,
+    dpi_scale: DpiScale,
+    asset_loader: Box<dyn AssetLoader>,
+    build_root: &dyn Fn() -> VNode,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let _ = dpi_scale; // Consumed by UIContext once todo 13 wires the build path.
+
+    // Smoke-probe the asset loader: log whether the conventional
+    // `assets/ui/screens/` directory is reachable. Catches "the app
+    // shipped without its asset bundle" regressions before a user
+    // sees a blank screen.
+    let probe = asset_loader.exists(crate::assets::SCREENS_DIR);
+    log(&format!(
+        "safi-ui::app: asset probe '{}' exists = {probe}",
+        crate::assets::SCREENS_DIR,
+    ));
+    // The loader is held here for the lifetime of the loop; todo 13
+    // (build path) and todo 17 (image pipeline) hand it to UIContext.
+    let _asset_loader = asset_loader;
+    log("safi-ui::app: entering frame loop (SDL_Renderer)");
+
+    let mut canvas = prepare_canvas(window);
+
     // Build the tree, lay it out against the *virtual* dp canvas, log the
     // computed layout once for device verification. Future state-driven
     // rebuilds will re-invoke `build_root` and `compute_if_dirty`; the
@@ -247,12 +366,22 @@ fn run_canvas_loop(
 
     let mut event_pump = sdl.event_pump()?;
     let mut frames_drawn: u32 = 0;
+    let mut layout_dirty = false;
 
     'frame: loop {
         for event in event_pump.poll_iter() {
-            if handle_event(&event) {
-                break 'frame;
+            match handle_event(&event) {
+                EventOutcome::Terminate => break 'frame,
+                EventOutcome::Reflow => layout_dirty = true,
+                EventOutcome::Continue => {}
             }
+        }
+
+        if layout_dirty {
+            tree = build_root();
+            layout.compute(&mut tree, available);
+            log_layout("safi-ui::app: layout (post-reflow)", &tree);
+            layout_dirty = false;
         }
 
         canvas.set_draw_color(CLEAR_COLOR);

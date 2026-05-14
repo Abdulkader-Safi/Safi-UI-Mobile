@@ -45,6 +45,22 @@ hashbrown = "0.14"
 # examples/window-smoke: build-from-source so SDL3 ships as its own .so.
 sdl3 = { version = "0.18", default-features = false, features = ["build-from-source"], optional = true }
 
+# Android-only: AAssetManager bindings (todo 12). Pulled in unconditionally
+# for Android targets — there is no "fall back to filesystem" path on a
+# real device, so this is a load-bearing dep, not an optional one.
+[target.'cfg(target_os = "android")'.dependencies]
+ndk = "0.9"
+ndk-sys = "0.6"
+# Needed to call `activity.getAssets()` on the Activity jobject SDL3
+# hands us, before we convert to an `AAssetManager*` via `ndk-sys`.
+jni = "0.21"
+
+# iOS-only: NSBundle + NSData via the modern objc2 stack (todo 12).
+# Same rationale as Android — a real iOS build needs Bundle.main access.
+[target.'cfg(target_os = "ios")'.dependencies]
+objc2 = "0.6"
+objc2-foundation = { version = "0.3", features = ["NSBundle", "NSData", "NSURL", "NSString"] }
+
 [dev-dependencies]
 proptest = "1"
 trybuild = "1"

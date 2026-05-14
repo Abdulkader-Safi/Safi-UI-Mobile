@@ -44,7 +44,8 @@ Work sequentially unless a todo is explicitly marked parallelisable. Don't skip 
 | `09-gpu-renderer-rect-and-text`     | ✅ Batcher + scaffolding · ⚠️ Device demo pending                                    |
 | `10-taffy-layout-engine`            | ✅ `LayoutEngine` + window-smoke layout demo (canvas fallback paints; GPU path logs) |
 | `11-xml-parser`                     | ✅ `parse::{XmlParser, ParseError}` (roxmltree); host-tested; `vnode!` ≡ XML output  |
-| `12-asset-loader-and-dpi`           | ⏭ Next                                                                              |
-| `13`–`34`                           | ⏳ Not started                                                                       |
+| `12-asset-loader-and-dpi`           | ✅ Trait + host + Android (`AAssetManager` via JNI) + iOS (`NSBundle.mainBundle` via objc2) + `DpiScale` + orientation re-layout |
+| `13-component-trait-and-prop-utils` | ⏭ Next                                                                              |
+| `14`–`34`                           | ⏳ Not started                                                                       |
 
 Each completed todo gets a `**Status:**` line near the top of its file and a row flipped above.
